@@ -64,6 +64,7 @@ function Filters:classifySeverity(pattern, context)
     local criticalPatterns = {
         "getrawmetatable", "setrawmetatable", "hookfunction", "hookmetamethod",
         "debug%.setupvalue", "debug%.setconstant", "setfenv",
+        "setreadonly", "replaceclosure",
     }
     for _, cp in ipairs(criticalPatterns) do
         if pattern:find(cp, 1, true) then
@@ -76,6 +77,7 @@ function Filters:classifySeverity(pattern, context)
     local highPatterns = {
         "loadstring", "HttpGet", "HttpPost", "syn%.request",
         "http_request", "getfenv", "getrenv", "getgenv",
+        "RequestAsync", "debug%.sethook",
     }
     for _, hp in ipairs(highPatterns) do
         if pattern:find(hp, 1, true) then

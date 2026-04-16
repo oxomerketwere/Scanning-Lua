@@ -44,6 +44,13 @@ local DEFAULT_WEIGHTS = {
     decompile = 6,
     saveinstance = 4,
 
+    -- Novos indicadores
+    RequestAsync = 5,
+    setreadonly = 7,
+    replaceclosure = 8,
+    ["debug.sethook"] = 7,
+    ["debug.getinfo"] = 3,
+
     -- Indicadores de ofuscação (bônus)
     known_obfuscator = 15,
     base64_payload = 8,
@@ -52,6 +59,13 @@ local DEFAULT_WEIGHTS = {
     minification = 3,
     high_entropy = 4,
     string_concat_evasion = 7,
+
+    -- Bônus de URL suspeita
+    suspicious_url = 5,
+    -- Bônus de nome suspeito
+    suspicious_name = 3,
+    -- Bônus de anti-debug
+    anti_debug = 4,
 }
 
 --- Multiplicadores para combinações perigosas
@@ -116,6 +130,30 @@ local COMBO_MULTIPLIERS = {
         multiplier = 1.5,
         severity = "HIGH",
     },
+    {
+        name = "Metatable + Readonly Bypass",
+        indicators = { "getrawmetatable", "setreadonly" },
+        multiplier = 2.5,
+        severity = "CRITICAL",
+    },
+    {
+        name = "Hook + Closure Hiding",
+        indicators = { "hookfunction", "newcclosure" },
+        multiplier = 2.0,
+        severity = "CRITICAL",
+    },
+    {
+        name = "Remote Spy Chain",
+        indicators = { "getnamecallmethod", "fireserver" },
+        multiplier = 1.8,
+        severity = "HIGH",
+    },
+    {
+        name = "Debug + Upvalue Manipulation",
+        indicators = { "debug.getupvalue", "debug.setupvalue" },
+        multiplier = 2.0,
+        severity = "CRITICAL",
+    },
 }
 
 --- Classificação por score
@@ -161,8 +199,9 @@ end
 --- @param code string Código a analisar
 --- @param source string Origem do código
 --- @param obfuscationDetections table|nil Detecções de ofuscação (do ObfuscationDetector)
+--- @param extraContext table|nil Contexto extra { url_score, name_score, anti_debug_score }
 --- @return table Resultado da análise heurística
-function HeuristicEngine:analyze(code, source, obfuscationDetections)
+function HeuristicEngine:analyze(code, source, obfuscationDetections, extraContext)
     if type(code) ~= "string" then
         return { score = 0, level = "NONE", indicators = {}, combos = {} }
     end
@@ -203,6 +242,11 @@ function HeuristicEngine:analyze(code, source, obfuscationDetections)
         { key = "game:HttpGet", pattern = "game:HttpGet" },
         { key = "decompile", pattern = "decompile" },
         { key = "saveinstance", pattern = "saveinstance" },
+        { key = "RequestAsync", pattern = "RequestAsync" },
+        { key = "setreadonly", pattern = "setreadonly" },
+        { key = "replaceclosure", pattern = "replaceclosure" },
+        { key = "debug.sethook", pattern = "debug%.sethook" },
+        { key = "debug.getinfo", pattern = "debug%.getinfo" },
     }
 
     for _, ind in ipairs(codeIndicators) do
@@ -283,6 +327,44 @@ function HeuristicEngine:analyze(code, source, obfuscationDetections)
     -- 4. Ajustes de contexto (reduz falso positivo)
     local contextAdjust = self:_analyzeContext(code)
     totalScore = math.max(0, totalScore + contextAdjust.adjustment)
+
+    -- 4b. Bônus de URL suspeita, nome suspeito e anti-debug
+    extraContext = extraContext or {}
+    if extraContext.url_score and extraContext.url_score > 0 then
+        local urlWeight = self.weights["suspicious_url"] or 5
+        local urlPoints = math.min(extraContext.url_score, urlWeight * 3)
+        indicators["suspicious_url"] = {
+            count = 1,
+            weight = urlWeight,
+            points = urlPoints,
+            detail = "URLs suspeitas detectadas",
+        }
+        totalScore = totalScore + urlPoints
+    end
+
+    if extraContext.name_score and extraContext.name_score > 0 then
+        local nameWeight = self.weights["suspicious_name"] or 3
+        local namePoints = math.min(extraContext.name_score, nameWeight * 3)
+        indicators["suspicious_name"] = {
+            count = 1,
+            weight = nameWeight,
+            points = namePoints,
+            detail = "Nome de script suspeito",
+        }
+        totalScore = totalScore + namePoints
+    end
+
+    if extraContext.anti_debug_score and extraContext.anti_debug_score > 0 then
+        local adWeight = self.weights["anti_debug"] or 4
+        local adPoints = math.min(extraContext.anti_debug_score, adWeight * 3)
+        indicators["anti_debug"] = {
+            count = 1,
+            weight = adWeight,
+            points = adPoints,
+            detail = "Técnicas anti-debug detectadas",
+        }
+        totalScore = totalScore + adPoints
+    end
 
     -- 5. Determinar nível final
     local level = "NONE"

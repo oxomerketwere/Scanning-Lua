@@ -83,6 +83,10 @@ Config.Filters = {
         "fireclickdetector",
         "firetouchinterest",
         "fireproximityprompt",
+        "RequestAsync",
+        "setreadonly",
+        "replaceclosure",
+        "debug%.sethook",
     },
     -- Serviços que devem ser monitorados
     MONITORED_SERVICES = {

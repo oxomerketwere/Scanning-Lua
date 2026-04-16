@@ -165,6 +165,18 @@ Sem isso, o scanner vira inútil:
 - **Severidade mínima** configurável
 - **Regras de contexto**: código documentado reduz score, loader mínimo aumenta
 
+### #28 — Detecção Avançada (Nível Absurdo)
+Módulo completo de análise que **muda o jogo**:
+- **Detecção por linha exata**: mostra o trecho vulnerável + tipo de ataque
+- **Padrões combinados**: `loadstring+HttpGet`, `hookfunction+getrawmetatable`, `getfenv+setfenv`, etc.
+- **Análise de ofuscação integrada**: concatenação, base64, minificação, string.char, hex encoding
+- **Nomes suspeitos**: detecta scripts com nomes como "money", "hack", "exploit", "aimbot"
+- **URLs perigosas**: pastebin, discord, ngrok, iplogger, grabify, webhook.site
+- **Anti-debug/anti-scan**: debug.getinfo, debug.sethook, string.dump, coroutine confusion
+- **Frequência de remotes**: FireServer/InvokeServer chamados muitas vezes = exploit
+- **Score inteligente combinado**: soma de todas as análises com classificação NONE/LOW/MEDIUM/HIGH/CRITICAL
+- **Novas vulnerabilidades**: RequestAsync, setreadonly, replaceclosure, debug.sethook
+
 ## 🎯 Risk Score Engine
 
 ### Pesos individuais
@@ -226,7 +238,8 @@ Scanning-Lua/
 │   ├── script_correlator.lua           # 🆕 Correlação entre scripts (#23)
 │   ├── continuous_monitor.lua          # 🆕 Monitoramento contínuo (#24)
 │   ├── payload_detector.lua            # 🆕 Detecção de payload remoto (#25)
-│   └── false_positive_reducer.lua      # 🆕 Redução de falsos positivos (#26)
+│   ├── false_positive_reducer.lua      # 🆕 Redução de falsos positivos (#26)
+│   └── advanced_detector.lua           # 🆕 Detecção avançada nível absurdo (#28)
 ├── logs/                               # Logs gerados
 └── reports/                            # Relatórios gerados
 ```
@@ -246,6 +259,16 @@ Scanning-Lua/
 | `VULN-OB-001` | Código ofuscado | 🟠 HIGH |
 | `VULN-RE-001` | Remote Abuse | 🟡 MEDIUM |
 | `VULN-IV-001` | Input Validation | 🟡 MEDIUM |
+| `VULN-RE-003` | Remote Abuse (FireServer frequency) | 🔴 HIGH |
+| `VULN-RE-004` | Remote Abuse (InvokeServer) | 🔴 HIGH |
+| `VULN-HK-001` | Hooking (hookfunction) | 🔴 CRITICAL |
+| `VULN-HK-002` | Hooking (newcclosure) | 🔴 HIGH |
+| `VULN-EM-001` | Environment Manipulation (getgenv/getrenv) | 🔴 CRITICAL |
+| `VULN-EM-002` | Metatable + setreadonly | 🔴 CRITICAL |
+| `VULN-DE-002` | Data Exfiltration (HttpPost) | 🟠 HIGH |
+| `VULN-DE-003` | Data Exfiltration (RequestAsync) | 🟠 HIGH |
+| `VULN-AD-001` | Anti-debug (debug.getinfo) | 🟠 HIGH |
+| `VULN-URL` | Suspicious URL | 🟠 HIGH / 🔴 CRITICAL |
 
 ### Ofuscação Detectada
 | Técnica | Severidade |
@@ -307,6 +330,8 @@ ScanningLua.getHeuristicAnalyses()    -- Ver análises heurísticas
 ScanningLua.getCorrelationReport()    -- Ver correlações entre scripts
 ScanningLua.addSignature(sig)         -- Adicionar assinatura customizada
 ScanningLua.whitelistScript(path)     -- Adicionar script à whitelist
+ScanningLua.getAdvancedDetections()   -- Ver detecções avançadas (nível absurdo)
+ScanningLua.getAdvancedStats()        -- Estatísticas do detector avançado
 
 -- INTEGRIDADE & SEGURANÇA
 ScanningLua.checkIntegrity()          -- Verificar integridade dos módulos
