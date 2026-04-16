@@ -1,0 +1,110 @@
+{
+  "alerts": [
+    {
+      "description": "Domínio não autorizado 'malicious-site.com' detectado com 1 requisições",
+      "domain": "malicious-site.com",
+      "request_count": 1,
+      "severity": "HIGH",
+      "type": "UNAUTHORIZED_DOMAIN"
+    },
+    {
+      "description": "Domínio não autorizado 'pastebin.com' detectado com 1 requisições",
+      "domain": "pastebin.com",
+      "request_count": 1,
+      "severity": "HIGH",
+      "type": "UNAUTHORIZED_DOMAIN"
+    }
+  ],
+  "blocked_requests": [
+    {
+      "body_size": 17,
+      "domain": "malicious-site.com",
+      "has_body": true,
+      "header_count": 0,
+      "id": 2,
+      "is_allowed": false,
+      "is_suspicious": true,
+      "method": "POST",
+      "timestamp": "2026-04-16T11:41:35Z",
+      "url": "https://malicious-site.com/steal"
+    },
+    {
+      "body_size": 0,
+      "domain": "pastebin.com",
+      "has_body": false,
+      "header_count": 0,
+      "id": 3,
+      "is_allowed": false,
+      "is_suspicious": true,
+      "method": "GET",
+      "timestamp": "2026-04-16T11:41:35Z",
+      "url": "https://pastebin.com/raw/abc123"
+    }
+  ],
+  "export_time": "2026-04-16T11:41:35Z",
+  "request_log": [
+    {
+      "body_size": 0,
+      "domain": "api.roblox.com",
+      "has_body": false,
+      "header_count": 0,
+      "id": 1,
+      "is_allowed": true,
+      "is_suspicious": false,
+      "method": "GET",
+      "timestamp": "2026-04-16T11:41:35Z",
+      "url": "https://api.roblox.com/users/1"
+    },
+    {
+      "body_size": 17,
+      "domain": "malicious-site.com",
+      "has_body": true,
+      "header_count": 0,
+      "id": 2,
+      "is_allowed": false,
+      "is_suspicious": true,
+      "method": "POST",
+      "timestamp": "2026-04-16T11:41:35Z",
+      "url": "https://malicious-site.com/steal"
+    },
+    {
+      "body_size": 0,
+      "domain": "pastebin.com",
+      "has_body": false,
+      "header_count": 0,
+      "id": 3,
+      "is_allowed": false,
+      "is_suspicious": true,
+      "method": "GET",
+      "timestamp": "2026-04-16T11:41:35Z",
+      "url": "https://pastebin.com/raw/abc123"
+    },
+    {
+      "body_size": 0,
+      "domain": "www.roblox.com",
+      "has_body": false,
+      "header_count": 0,
+      "id": 4,
+      "is_allowed": true,
+      "is_suspicious": false,
+      "method": "GET",
+      "timestamp": "2026-04-16T11:41:35Z",
+      "url": "https://www.roblox.com/catalog"
+    }
+  ],
+  "stats": {
+    "blocked_requests": 0,
+    "by_domain": {
+      "api.roblox.com": 1,
+      "malicious-site.com": 1,
+      "pastebin.com": 1,
+      "www.roblox.com": 1
+    },
+    "by_method": {
+      "GET": 3,
+      "POST": 1
+    },
+    "suspicious_requests": 2,
+    "total_requests": 4
+  }
+}
