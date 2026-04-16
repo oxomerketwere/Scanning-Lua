@@ -1066,11 +1066,20 @@ function ScannerGui:_populateVulns(page, data)
     if type(details) == "table" and #details > 0 then
         local order = 1
         for _, v in ipairs(details) do
-            local title = v.id or v.type or "Unknown"
+            local title = string.format("[%s] %s",
+                v.vuln_id or v.id or "?",
+                v.name or v.type or "Unknown")
             local desc = (v.description or v.message or "") ..
                 "\nCategoria: " .. (v.category or "N/A") ..
-                "\nPadrão: " .. (v.pattern or "N/A") ..
-                "\nFonte: " .. (v.source or "N/A")
+                "\nFonte: " .. (v.source or "N/A") ..
+                "\nMatch: " .. (v.matched_text or v.pattern or "N/A") ..
+                "\nLinha: " .. tostring(v.line_number or "N/A")
+            if v.line_content then
+                desc = desc .. "\nConteúdo: " .. truncate(v.line_content, 120)
+            end
+            if v.remediation then
+                desc = desc .. "\n\n💡 Remediação: " .. v.remediation
+            end
             local sev = v.severity or "MEDIUM"
 
             -- Filtro de busca
@@ -1097,9 +1106,17 @@ function ScannerGui:_populateVulns(page, data)
     local vulnText = "=== Vulnerabilidades ===\n"
     if type(details) == "table" then
         for _, v in ipairs(details) do
-            vulnText = vulnText .. string.format("[%s] %s: %s\n  Categoria: %s\n  Padrão: %s\n  Fonte: %s\n\n",
-                v.severity or "?", v.id or "?", v.description or v.message or "",
-                v.category or "N/A", v.pattern or "N/A", v.source or "N/A")
+            vulnText = vulnText .. string.format(
+                "[%s] %s — %s\n  Descrição: %s\n  Categoria: %s\n  Fonte: %s\n  Match: %s\n  Linha: %s\n  Remediação: %s\n\n",
+                v.severity or "?",
+                v.vuln_id or v.id or "?",
+                v.name or v.type or "Unknown",
+                v.description or v.message or "N/A",
+                v.category or "N/A",
+                v.source or "N/A",
+                v.matched_text or v.pattern or "N/A",
+                tostring(v.line_number or "N/A"),
+                v.remediation or "N/A")
         end
     end
 
@@ -1341,12 +1358,97 @@ end
 function ScannerGui:_populateResults(page, data)
     local order = 1
 
-    -- Seção: Estatísticas completas
-    local statsSection = self:_createSection(page, "📊 Estatísticas Completas", 1)
+    -- Seção: Log Entries (mostrar logs do scanner na GUI)
+    local logEntries = data.log_entries or {}
+    if type(logEntries) == "table" and #logEntries > 0 then
+        local logsSection = self:_createSection(page, "📝 Logs do Scanner", 1)
+        local logOrder = 1
 
-    -- Listar todas as chaves de data como resultados copiáveis
+        local logLevelEmojis = {
+            CRITICAL = "⚫",
+            ERROR = "🔴",
+            WARN = "🟠",
+            INFO = "🔵",
+            DEBUG = "⚪",
+        }
+
+        local logLevelToSeverity = {
+            CRITICAL = "CRITICAL",
+            ERROR = "HIGH",
+            WARN = "MEDIUM",
+            INFO = "NONE",
+            DEBUG = "NONE",
+        }
+
+        -- Mostrar logs do mais recente para o mais antigo (limitar a 100 entradas)
+        local maxLogDisplay = 100
+        local startIdx = math.max(1, #logEntries - maxLogDisplay + 1)
+        for i = #logEntries, startIdx, -1 do
+            local entry = logEntries[i]
+            if type(entry) == "table" then
+                local lvl = entry.level or "INFO"
+                local emoji = logLevelEmojis[lvl] or "⚪"
+                local logTitle = string.format("%s [%s] %s", emoji, lvl, entry.category or "")
+                local logDesc = (entry.message or "") ..
+                    "\nTimestamp: " .. (entry.timestamp or "N/A")
+                if entry.data then
+                    logDesc = logDesc .. "\nDados: " .. safeTostring(entry.data)
+                end
+                if entry.stacktrace then
+                    logDesc = logDesc .. "\n\nStack trace:\n" .. tostring(entry.stacktrace)
+                end
+
+                local searchable = (logTitle .. logDesc):lower()
+                if self.searchFilter == "" or searchable:find(self.searchFilter, 1, true) then
+                    local cardSev = logLevelToSeverity[lvl] or "NONE"
+
+                    self:_createResultCard(logsSection, logTitle, logDesc, cardSev, logOrder)
+                    logOrder = logOrder + 1
+                end
+            end
+        end
+
+        -- Botão copiar todos os logs
+        local logsText = "=== Scanning-Lua Logs ===\n"
+        for _, entry in ipairs(logEntries) do
+            if type(entry) == "table" then
+                logsText = logsText .. string.format("[%s][%s][%s] %s\n",
+                    entry.timestamp or "?", entry.level or "?",
+                    entry.category or "?", entry.message or "")
+            end
+        end
+
+        local copyLogsBtn = self:_create("TextButton", {
+            Size = UDim2.new(1, -4, 0, 30),
+            BackgroundColor3 = COLORS.ACCENT,
+            Text = "📋 Copiar Todos os Logs",
+            TextColor3 = COLORS.TEXT_PRIMARY,
+            TextSize = FONT_SIZES.SMALL,
+            Font = Enum.Font.GothamBold,
+            AutoButtonColor = false,
+            LayoutOrder = logOrder + 1,
+            Parent = logsSection,
+        })
+        self:_corner(copyLogsBtn, 6)
+
+        self:_connect(copyLogsBtn.MouseEnter, function() copyLogsBtn.BackgroundColor3 = COLORS.ACCENT_HOVER end)
+        self:_connect(copyLogsBtn.MouseLeave, function() copyLogsBtn.BackgroundColor3 = COLORS.ACCENT end)
+        self:_connect(copyLogsBtn.MouseButton1Click, function()
+            self:_copyToClipboard(logsText)
+            self:_flashCopy(copyLogsBtn, COLORS.ACCENT)
+        end)
+    end
+
+    -- Seção: Estatísticas completas
+    local statsSection = self:_createSection(page, "📊 Estatísticas Completas", 2)
+
+    -- Listar todas as chaves de data como resultados copiáveis (excluir log_entries que já é exibido acima)
     local allKeys = {}
-    for k in pairs(data) do allKeys[#allKeys + 1] = k end
+    for k in pairs(data) do
+        if k ~= "log_entries" then
+            allKeys[#allKeys + 1] = k
+        end
+    end
     table.sort(allKeys)
 
     for _, key in ipairs(allKeys) do
