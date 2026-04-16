@@ -239,13 +239,21 @@ end
 
 --- Conecta evento e armazena connection para cleanup
 function ScannerGui:_connect(signal, callback)
-    if not signal or not callback then return nil end
+    if not signal or not callback then
+        if self.logger and self.logger.warn then
+            self.logger:warn("GUI", "Falha ao conectar evento: signal/callback inválido")
+        end
+        return nil
+    end
     local ok, conn = pcall(function()
         return signal:Connect(callback)
     end)
     if ok and conn then
         self.connections[#self.connections + 1] = conn
         return conn
+    end
+    if self.logger and self.logger.warn then
+        self.logger:warn("GUI", "Falha ao conectar evento de GUI", { has_signal = signal ~= nil, has_callback = callback ~= nil })
     end
     return nil
 end
