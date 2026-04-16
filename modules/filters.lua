@@ -25,6 +25,8 @@ function Filters.new(config, logger)
     self.logger = logger
     self.minSeverity = SEVERITY_LEVELS[config.MIN_SEVERITY] or SEVERITY_LEVELS.LOW
     self.matchHistory = {}
+    self.severityCache = {} -- Cache de classificação de severidade
+    self.whitelistedPatterns = {} -- Padrões ignorados pelo usuário
     self.stats = {
         total_scanned = 0,
         total_matches = 0,
@@ -34,12 +36,29 @@ function Filters.new(config, logger)
     return self
 end
 
---- Classifica a severidade de um padrão encontrado
+--- Adiciona um padrão à whitelist (será ignorado nas análises)
+--- @param pattern string Padrão a ignorar
+function Filters:addWhitelist(pattern)
+    self.whitelistedPatterns[pattern] = true
+end
+
+--- Remove um padrão da whitelist
+--- @param pattern string Padrão a remover
+function Filters:removeWhitelist(pattern)
+    self.whitelistedPatterns[pattern] = nil
+end
+
+--- Classifica a severidade de um padrão encontrado (com cache)
 --- @param pattern string O padrão que foi encontrado
 --- @param context table Contexto adicional
 --- @return string Nível de severidade
 function Filters:classifySeverity(pattern, context)
     context = context or {}
+
+    -- Verificar cache
+    if self.severityCache[pattern] then
+        return self.severityCache[pattern]
+    end
 
     -- Padrões de alta criticidade (manipulação direta de ambiente/memória)
     local criticalPatterns = {
@@ -48,6 +67,7 @@ function Filters:classifySeverity(pattern, context)
     }
     for _, cp in ipairs(criticalPatterns) do
         if pattern:find(cp, 1, true) then
+            self.severityCache[pattern] = "CRITICAL"
             return "CRITICAL"
         end
     end
@@ -59,6 +79,7 @@ function Filters:classifySeverity(pattern, context)
     }
     for _, hp in ipairs(highPatterns) do
         if pattern:find(hp, 1, true) then
+            self.severityCache[pattern] = "HIGH"
             return "HIGH"
         end
     end
@@ -72,12 +93,26 @@ function Filters:classifySeverity(pattern, context)
     }
     for _, mp in ipairs(mediumPatterns) do
         if pattern:find(mp, 1, true) then
+            self.severityCache[pattern] = "MEDIUM"
             return "MEDIUM"
         end
     end
 
     -- Todos os outros padrões são de baixa severidade
-    return "LOW"
+    local result = "LOW"
+    self.severityCache[pattern] = result
+    return result
+end
+
+--- Remove comentários Lua do código para evitar falsos positivos
+--- @param code string Código Lua
+--- @return string Código sem comentários
+function Filters:_stripComments(code)
+    -- Remover comentários de bloco --[[ ... ]]
+    code = code:gsub("%-%-%[%[.-%]%]", "")
+    -- Remover comentários de linha -- ...
+    code = code:gsub("%-%-[^\n]*", "")
+    return code
 end
 
 --- Analisa uma string de código em busca de padrões suspeitos
@@ -91,18 +126,26 @@ function Filters:analyzeCode(code, source)
 
     self.stats.total_scanned = self.stats.total_scanned + 1
 
+    -- Remover comentários para evitar falsos positivos
+    local cleanCode = self:_stripComments(code)
+
     local matches = {}
     local patterns = self.config.SUSPICIOUS_PATTERNS or {}
 
     for _, pattern in ipairs(patterns) do
+        -- Pular padrões na whitelist
+        if self.whitelistedPatterns[pattern] then
+            goto continue_pattern
+        end
+
         local startPos = 1
         while true do
-            local matchStart, matchEnd = code:find(pattern, startPos)
+            local matchStart, matchEnd = cleanCode:find(pattern, startPos)
             if not matchStart then
                 break
             end
 
-            local matchedText = code:sub(matchStart, matchEnd)
+            local matchedText = cleanCode:sub(matchStart, matchEnd)
             local severity = self:classifySeverity(pattern, { source = source })
             local severityLevel = SEVERITY_LEVELS[severity] or 0
 
@@ -143,6 +186,7 @@ function Filters:analyzeCode(code, source)
 
             startPos = matchEnd + 1
         end
+        ::continue_pattern::
     end
 
     -- Salvar no histórico
@@ -286,19 +330,25 @@ function Filters:analyzeRemoteArgs(args, remoteName)
     return alerts
 end
 
---- Calcula a profundidade de uma tabela
+--- Calcula a profundidade de uma tabela (com detecção de referência circular)
 --- @param tbl table Tabela a analisar
 --- @param current number Profundidade atual
 --- @param maxDepth number Profundidade máxima antes de parar
+--- @param seen table|nil Tabelas já visitadas (detecção de ciclo)
 --- @return number Profundidade
-function Filters._getTableDepth(tbl, current, maxDepth)
+function Filters._getTableDepth(tbl, current, maxDepth, seen)
     if current >= maxDepth then
         return current
     end
+    seen = seen or {}
+    if seen[tbl] then
+        return current -- Referência circular detectada
+    end
+    seen[tbl] = true
     local maxFound = current
     for _, v in pairs(tbl) do
         if type(v) == "table" then
-            local depth = Filters._getTableDepth(v, current + 1, maxDepth)
+            local depth = Filters._getTableDepth(v, current + 1, maxDepth, seen)
             if depth > maxFound then
                 maxFound = depth
             end

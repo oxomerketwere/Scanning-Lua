@@ -31,6 +31,8 @@ function Scanner.new(config, logger, filters)
     }
     self.scanCount = 0
     self.isScanning = false
+    self.connections = {} -- Rastrear conexões de monitoramento para cleanup
+    self.hooks = {}       -- Rastrear hooks instalados para cleanup
     return self
 end
 
@@ -294,6 +296,75 @@ function Scanner:scanServices(game)
 
     if self.logger then
         self.logger:info("SCANNER", "Scan de serviços concluído", self:getSummary())
+    end
+end
+
+--- Escaneia apenas serviços específicos
+--- @param game table Objeto game do Roblox
+--- @param serviceList table Lista de nomes de serviços para escanear
+function Scanner:scanSelectiveServices(game, serviceList)
+    if not game or not serviceList then return end
+
+    self.isScanning = true
+    self.scanCount = self.scanCount + 1
+
+    if self.logger then
+        self.logger:info("SCANNER", string.format(
+            "Scan seletivo #%d: %d serviços", self.scanCount, #serviceList
+        ))
+    end
+
+    for _, serviceName in ipairs(serviceList) do
+        local success, service = pcall(function()
+            return game:GetService(serviceName)
+        end)
+        if success and service then
+            self:scanInstance(service, 0)
+        end
+    end
+
+    self.isScanning = false
+
+    if self.logger then
+        self.logger:info("SCANNER", "Scan seletivo concluído", self:getSummary())
+    end
+end
+
+--- Escaneia instâncias de forma assíncrona usando task.defer (quando disponível)
+--- @param instance table Instância raiz
+--- @param callback function|nil Callback quando concluído
+function Scanner:scanInstanceAsync(instance, callback)
+    local taskAvailable = pcall(function() return task and task.defer end)
+
+    if not taskAvailable then
+        -- Fallback para scan síncrono
+        self:scanInstance(instance, 0)
+        if callback then callback(self:getSummary()) end
+        return
+    end
+
+    self.isScanning = true
+
+    task.defer(function()
+        self:scanInstance(instance, 0)
+        self.isScanning = false
+        if callback then callback(self:getSummary()) end
+    end)
+end
+
+--- Desconecta todas as conexões de monitoramento
+function Scanner:disconnectAll()
+    for _, conn in ipairs(self.connections) do
+        pcall(function()
+            if conn and conn.Disconnect then
+                conn:Disconnect()
+            end
+        end)
+    end
+    self.connections = {}
+
+    if self.logger then
+        self.logger:info("SCANNER", "Todas as conexões desconectadas")
     end
 end
 
