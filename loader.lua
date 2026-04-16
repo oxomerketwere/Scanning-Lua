@@ -1566,61 +1566,59 @@ end
 --- Analisa resultados do Risk Score para gerar vulnerabilidades
 function _VD:analyzeRiskResults(riskAnalyses)
     for _, analysis in ipairs(riskAnalyses) do
-        if analysis.level == "NONE" or analysis.level == "LOW" then
-            goto continue_analysis
-        end
-        for _, finding in ipairs(analysis.findings or {}) do
-            for _, vdef in ipairs(VULN_DB) do
-                for _, ind in ipairs(vdef.ind) do
-                    if finding.pattern == ind or finding.pattern:find(ind, 1, true) then
-                        local v = {
-                            vuln_id = vdef.id, name = vdef.name,
-                            category = vdef.cat, severity = vdef.sev,
-                            remediation = vdef.fix,
-                            source = analysis.source,
-                            risk_score = analysis.score,
-                            risk_level = analysis.level,
-                            line = finding.line,
-                            timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-                        }
-                        if not self:_isDup(v) then
-                            self.vulns[#self.vulns+1] = v
-                            self.stats.total = self.stats.total + 1
-                            self.stats.by_severity[vdef.sev] = (self.stats.by_severity[vdef.sev] or 0) + 1
-                            self.stats.by_category[vdef.cat] = (self.stats.by_category[vdef.cat] or 0) + 1
-                            if self.logger then
-                                self.logger:warn("VULN", string.format(
-                                    "🛡️ [%s] %s em %s [%s] score:%.1f",
-                                    v.vuln_id, v.name, v.source, v.severity, analysis.score
-                                ))
+        if analysis.level ~= "NONE" and analysis.level ~= "LOW" then
+            for _, finding in ipairs(analysis.findings or {}) do
+                for _, vdef in ipairs(VULN_DB) do
+                    for _, ind in ipairs(vdef.ind) do
+                        if finding.pattern == ind or finding.pattern:find(ind, 1, true) then
+                            local v = {
+                                vuln_id = vdef.id, name = vdef.name,
+                                category = vdef.cat, severity = vdef.sev,
+                                remediation = vdef.fix,
+                                source = analysis.source,
+                                risk_score = analysis.score,
+                                risk_level = analysis.level,
+                                line = finding.line,
+                                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+                            }
+                            if not self:_isDup(v) then
+                                self.vulns[#self.vulns+1] = v
+                                self.stats.total = self.stats.total + 1
+                                self.stats.by_severity[vdef.sev] = (self.stats.by_severity[vdef.sev] or 0) + 1
+                                self.stats.by_category[vdef.cat] = (self.stats.by_category[vdef.cat] or 0) + 1
+                                if self.logger then
+                                    self.logger:warn("VULN", string.format(
+                                        "🛡️ [%s] %s em %s [%s] score:%.1f",
+                                        v.vuln_id, v.name, v.source, v.severity, analysis.score
+                                    ))
+                                end
                             end
+                            break
                         end
-                        break
                     end
                 end
             end
-        end
-        -- Combos geram vulnerabilidades extras
-        for _, combo in ipairs(analysis.combos or {}) do
-            local v = {
-                vuln_id = "VULN-COMBO", name = combo.name,
-                category = "COMBO_ATTACK", severity = "CRITICAL",
-                remediation = "Investigar combinação perigosa de padrões.",
-                source = analysis.source,
-                risk_score = analysis.score,
-                risk_level = analysis.level,
-                combo_patterns = combo.patterns,
-                multiplier = combo.multiplier,
-                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-            }
-            if not self:_isDup(v) then
-                self.vulns[#self.vulns+1] = v
-                self.stats.total = self.stats.total + 1
-                self.stats.by_severity["CRITICAL"] = (self.stats.by_severity["CRITICAL"] or 0) + 1
-                self.stats.by_category["COMBO_ATTACK"] = (self.stats.by_category["COMBO_ATTACK"] or 0) + 1
+            -- Combos geram vulnerabilidades extras
+            for _, combo in ipairs(analysis.combos or {}) do
+                local v = {
+                    vuln_id = "VULN-COMBO", name = combo.name,
+                    category = "COMBO_ATTACK", severity = "CRITICAL",
+                    remediation = "Investigar combinação perigosa de padrões.",
+                    source = analysis.source,
+                    risk_score = analysis.score,
+                    risk_level = analysis.level,
+                    combo_patterns = combo.patterns,
+                    multiplier = combo.multiplier,
+                    timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+                }
+                if not self:_isDup(v) then
+                    self.vulns[#self.vulns+1] = v
+                    self.stats.total = self.stats.total + 1
+                    self.stats.by_severity["CRITICAL"] = (self.stats.by_severity["CRITICAL"] or 0) + 1
+                    self.stats.by_category["COMBO_ATTACK"] = (self.stats.by_category["COMBO_ATTACK"] or 0) + 1
+                end
             end
         end
-        ::continue_analysis::
     end
 end
 

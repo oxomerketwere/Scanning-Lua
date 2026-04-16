@@ -134,59 +134,56 @@ function Filters:analyzeCode(code, source)
 
     for _, pattern in ipairs(patterns) do
         -- Pular padrões na whitelist
-        if self.whitelistedPatterns[pattern] then
-            goto continue_pattern
-        end
-
-        local startPos = 1
-        while true do
-            local matchStart, matchEnd = cleanCode:find(pattern, startPos)
-            if not matchStart then
-                break
-            end
-
-            local matchedText = cleanCode:sub(matchStart, matchEnd)
-            local severity = self:classifySeverity(pattern, { source = source })
-            local severityLevel = SEVERITY_LEVELS[severity] or 0
-
-            if severityLevel >= self.minSeverity then
-                -- Extrair contexto (linha onde o match foi encontrado)
-                local lineNum = 1
-                for _ in code:sub(1, matchStart):gmatch("\n") do
-                    lineNum = lineNum + 1
+        if not self.whitelistedPatterns[pattern] then
+            local startPos = 1
+            while true do
+                local matchStart, matchEnd = cleanCode:find(pattern, startPos)
+                if not matchStart then
+                    break
                 end
 
-                -- Extrair a linha completa
-                local lineStart = code:sub(1, matchStart):match(".*\n()") or 1
-                local lineEnd = code:find("\n", matchEnd) or #code
-                local line = code:sub(lineStart, lineEnd):gsub("^%s+", ""):gsub("%s+$", "")
+                local matchedText = cleanCode:sub(matchStart, matchEnd)
+                local severity = self:classifySeverity(pattern, { source = source })
+                local severityLevel = SEVERITY_LEVELS[severity] or 0
 
-                local match = {
-                    pattern = pattern,
-                    matched_text = matchedText,
-                    severity = severity,
-                    source = source,
-                    line_number = lineNum,
-                    line_content = line,
-                    position = { start = matchStart, finish = matchEnd },
-                    timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-                }
+                if severityLevel >= self.minSeverity then
+                    -- Extrair contexto (linha onde o match foi encontrado)
+                    local lineNum = 1
+                    for _ in code:sub(1, matchStart):gmatch("\n") do
+                        lineNum = lineNum + 1
+                    end
 
-                matches[#matches + 1] = match
-                self.stats.total_matches = self.stats.total_matches + 1
-                self.stats.by_severity[severity] = (self.stats.by_severity[severity] or 0) + 1
+                    -- Extrair a linha completa
+                    local lineStart = code:sub(1, matchStart):match(".*\n()") or 1
+                    local lineEnd = code:find("\n", matchEnd) or #code
+                    local line = code:sub(lineStart, lineEnd):gsub("^%s+", ""):gsub("%s+$", "")
 
-                if self.logger then
-                    self.logger:warn("FILTER", string.format(
-                        "Padrão suspeito encontrado: '%s' em %s (linha %d) [%s]",
-                        matchedText, source, lineNum, severity
-                    ), match)
+                    local match = {
+                        pattern = pattern,
+                        matched_text = matchedText,
+                        severity = severity,
+                        source = source,
+                        line_number = lineNum,
+                        line_content = line,
+                        position = { start = matchStart, finish = matchEnd },
+                        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+                    }
+
+                    matches[#matches + 1] = match
+                    self.stats.total_matches = self.stats.total_matches + 1
+                    self.stats.by_severity[severity] = (self.stats.by_severity[severity] or 0) + 1
+
+                    if self.logger then
+                        self.logger:warn("FILTER", string.format(
+                            "Padrão suspeito encontrado: '%s' em %s (linha %d) [%s]",
+                            matchedText, source, lineNum, severity
+                        ), match)
+                    end
                 end
-            end
 
-            startPos = matchEnd + 1
+                startPos = matchEnd + 1
+            end
         end
-        ::continue_pattern::
     end
 
     -- Salvar no histórico
