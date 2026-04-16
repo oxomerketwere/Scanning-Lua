@@ -1364,14 +1364,6 @@ function ScannerGui:_populateResults(page, data)
         local logsSection = self:_createSection(page, "📝 Logs do Scanner", 1)
         local logOrder = 1
 
-        -- Cores por nível de log
-        local logLevelColors = {
-            CRITICAL = COLORS.CRITICAL,
-            ERROR = COLORS.HIGH,
-            WARN = COLORS.MEDIUM,
-            INFO = COLORS.ACCENT,
-            DEBUG = COLORS.TEXT_DIM,
-        }
         local logLevelEmojis = {
             CRITICAL = "⚫",
             ERROR = "🔴",
@@ -1380,8 +1372,17 @@ function ScannerGui:_populateResults(page, data)
             DEBUG = "⚪",
         }
 
-        -- Mostrar logs do mais recente para o mais antigo
-        local startIdx = math.max(1, #logEntries - 99)  -- Limitar a 100 entradas mais recentes
+        local logLevelToSeverity = {
+            CRITICAL = "CRITICAL",
+            ERROR = "HIGH",
+            WARN = "MEDIUM",
+            INFO = "NONE",
+            DEBUG = "NONE",
+        }
+
+        -- Mostrar logs do mais recente para o mais antigo (limitar a 100 entradas)
+        local maxLogDisplay = 100
+        local startIdx = math.max(1, #logEntries - maxLogDisplay + 1)
         for i = #logEntries, startIdx, -1 do
             local entry = logEntries[i]
             if type(entry) == "table" then
@@ -1399,13 +1400,7 @@ function ScannerGui:_populateResults(page, data)
 
                 local searchable = (logTitle .. logDesc):lower()
                 if self.searchFilter == "" or searchable:find(self.searchFilter, 1, true) then
-                    -- Mapear nível de log para severidade de card
-                    local cardSev = "NONE"
-                    if lvl == "CRITICAL" then cardSev = "CRITICAL"
-                    elseif lvl == "ERROR" then cardSev = "HIGH"
-                    elseif lvl == "WARN" then cardSev = "MEDIUM"
-                    elseif lvl == "INFO" then cardSev = "NONE"
-                    elseif lvl == "DEBUG" then cardSev = "NONE" end
+                    local cardSev = logLevelToSeverity[lvl] or "NONE"
 
                     self:_createResultCard(logsSection, logTitle, logDesc, cardSev, logOrder)
                     logOrder = logOrder + 1
