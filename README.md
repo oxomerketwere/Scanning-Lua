@@ -1,6 +1,6 @@
-# 🔒 Scanning-Lua
+# 🔒 Scanning-Lua v2.0.0
 
-> Scanner de Segurança para Roblox — Detecta vulnerabilidades, monitora RemoteEvents, analisa scripts e registra atividade de rede. Logs em JSON.
+> Scanner de Segurança Inteligente para Roblox — Análise contextual com Risk Score, detecção de ofuscação, monitoramento de rede avançado, anti-detecção e alertas Discord.
 
 ## 🚀 Uso Rápido (loadstring)
 
@@ -10,128 +10,167 @@ Cole no seu executor (Wave, Synapse, Fluxus, etc.):
 loadstring(game:HttpGet("https://raw.githubusercontent.com/oxomerketwere/Scanning-Lua/main/loader.lua"))()
 ```
 
-O scanner executa automaticamente ao carregar. Depois, use a API via console:
-
+### Desativar auto-scan (carregar sem escanear):
 ```lua
--- Scan completo do jogo
-ScanningLua.fullScan()
+getgenv().ScanningLua_AUTO_SCAN = false
+loadstring(game:HttpGet("https://raw.githubusercontent.com/oxomerketwere/Scanning-Lua/main/loader.lua"))()
+```
 
--- Analisar código Lua específico
-ScanningLua.scanCode("loadstring(game:HttpGet('...'))()", "meu_script.lua")
+## 🔥 O que há de novo na v2
 
--- Analisar um script do jogo
-ScanningLua.scanScript(game.Workspace.SomeScript)
+| Feature | v1 | v2 |
+|---------|----|----|
+| Detecção | Pattern matching simples | **Risk Score contextual** com combinações perigosas |
+| Ofuscação | Não detectava | **Detecta**: Luraph, Moonsec, IronBrew, Base64, hex encoding, minificação |
+| Network | Whitelist básica | **Parser de URL completo**, domínios de risco catalogados, detecção de burst |
+| Anti-detecção | Nenhuma | **Nomes randomizados**, delay aleatório, output bufferizado |
+| Análise | Lista padrões | **Score numérico** + nível (LOW → CRITICAL) + combos multiplicadores |
+| Discord | Não tinha | **Webhook com embeds** — alertas em tempo real |
+| Fingerprint | Não tinha | **Detecta executor**, capabilities, avaliação de risco do ambiente |
 
--- Monitorar todos os RemoteEvents em tempo real
-ScanningLua.monitorAllRemotes(function(data)
-    print("Remote:", data.remote_name, "Args:", data.arg_count)
-end)
+## 🎯 Risk Score Engine (Análise Contextual)
 
--- Ver resumo no console
-ScanningLua.printSummary()
+Em vez de simplesmente listar padrões encontrados, o v2 calcula um **score de risco numérico** considerando:
 
--- Salvar relatórios em JSON (pasta ScanningLua/)
-ScanningLua.saveAllResults()
+### Pesos individuais
+```
+loadstring      → +8 pontos
+hookfunction    → +9 pontos
+HttpGet         → +4 pontos
+getrawmetatable → +7 pontos
+...
+```
 
--- Ver relatório de vulnerabilidades
-print(ScanningLua.getVulnerabilityReportJSON())
+### Combinações perigosas (multiplicadores!)
+```
+loadstring + HttpGet      → score × 2.5  ("Remote Code Execution")
+getrawmetatable + hookfn  → score × 2.0  ("Full Environment Hijack")
+getnamecall + setnamecall → score × 1.8  ("Namecall Hijack")
+debug.setupvalue + getfenv → score × 2.0 ("Upvalue + Env Manipulation")
+```
 
--- Encerrar e salvar tudo
-ScanningLua.shutdown()
+### Bonus de ofuscação
+```
+Ofuscador conhecido (Luraph, etc.) → +15 pontos
+Base64 payload                      → +8 pontos
+Hex encoding                        → +6 pontos
+```
+
+### Nível final
+| Score | Nível |
+|-------|-------|
+| 0 | NONE |
+| 1-9 | LOW |
+| 10-24 | MEDIUM |
+| 25-49 | HIGH |
+| 50+ | CRITICAL |
+
+Exemplo real:
+```
+Script com HttpGet + loadstring:
+  HttpGet = 4 pts + loadstring = 8 pts = 12
+  Combo "Remote Code Execution" × 2.5 = 30
+  → Nível: HIGH ✅
 ```
 
 ## 📁 Estrutura do Projeto
 
 ```
 Scanning-Lua/
-├── loader.lua                          # 🎯 Arquivo único para loadstring
-├── main.lua                            # Ponto de entrada (Lua padrão)
+├── loader.lua                          # 🎯 Arquivo único para loadstring (TUDO AQUI)
+├── main.lua                            # Ponto de entrada (Lua padrão / demo)
 ├── config.lua                          # Configurações globais
 ├── modules/
-│   ├── json.lua                        # Serialização/deserialização JSON
-│   ├── logger.lua                      # Sistema de logs com saída JSON
-│   ├── filters.lua                     # Filtros e detecção de padrões suspeitos
-│   ├── scanner.lua                     # Scanner de instâncias e scripts
-│   ├── vulnerability_detector.lua      # Detector e classificador de vulnerabilidades
-│   └── network_monitor.lua             # Monitor de atividade de rede
-├── logs/                               # Logs de scan (gerados automaticamente)
-└── reports/                            # Relatórios de vulnerabilidades (gerados)
+│   ├── json.lua                        # JSON encoder/decoder
+│   ├── logger.lua                      # Logger com saída JSON
+│   ├── filters.lua                     # Filtros com cache e whitelist
+│   ├── scanner.lua                     # Scanner de instâncias (async)
+│   ├── vulnerability_detector.lua      # Detector de vulnerabilidades
+│   ├── network_monitor.lua             # Monitor de rede
+│   ├── obfuscation_detector.lua        # 🆕 Detector de ofuscação
+│   ├── environment_fingerprinter.lua   # 🆕 Fingerprint do executor
+│   ├── anti_detection.lua              # 🆕 Anti-detecção
+│   └── discord_webhook.lua             # 🆕 Webhook Discord
+├── logs/                               # Logs gerados
+└── reports/                            # Relatórios gerados
 ```
 
-## 🛡️ O que o Scanner Detecta
+## 🛡️ Detecções
 
-### Categorias de Vulnerabilidade
+### Vulnerabilidades
+| ID | Categoria | Severidade |
+|----|-----------|-----------|
+| `VULN-CI-001` | Code Injection (loadstring) | 🔴 CRITICAL |
+| `VULN-MM-001` | Memory Manipulation (metatables) | 🔴 CRITICAL |
+| `VULN-MM-002` | Hook de funções | 🔴 CRITICAL |
+| `VULN-COMBO` | Combinações perigosas | 🔴 CRITICAL |
+| `VULN-DE-001` | Data Exfiltration (HTTP) | 🟠 HIGH |
+| `VULN-PE-001` | Privilege Escalation | 🟠 HIGH |
+| `VULN-AB-001` | Auth Bypass (namecall) | 🟠 HIGH |
+| `VULN-OB-001` | Código ofuscado | 🟠 HIGH |
+| `VULN-RE-001` | Remote Abuse | 🟡 MEDIUM |
+| `VULN-IV-001` | Input Validation | 🟡 MEDIUM |
 
-| Categoria | Severidade | Descrição |
-|-----------|-----------|-----------|
-| `CODE_INJECTION` | 🔴 CRITICAL | `loadstring`, require dinâmico |
-| `MEMORY_MANIPULATION` | 🔴 CRITICAL | `getrawmetatable`, `hookfunction`, `hookmetamethod` |
-| `DATA_EXFILTRATION` | 🟠 HIGH | `HttpGet`, `HttpPost`, `syn.request` para domínios externos |
-| `PRIVILEGE_ESCALATION` | 🟠 HIGH | `getgenv`, `getrenv`, `debug.setupvalue` |
-| `AUTHENTICATION_BYPASS` | 🟠 HIGH | `getnamecallmethod`, `setnamecallmethod` |
-| `REMOTE_ABUSE` | 🟡 MEDIUM | RemoteEvents sem validação, sem rate limiting |
-| `INPUT_VALIDATION` | 🟡 MEDIUM | `fireclickdetector`, `firetouchinterest`, `fireproximityprompt` |
+### Ofuscação Detectada
+| Técnica | Severidade |
+|---------|-----------|
+| Luraph / Moonsec / IronBrew / PSU | 🔴 CRITICAL |
+| Base64 payload (>200 chars) | 🔴 CRITICAL |
+| String concatenation evasion | 🟠 HIGH |
+| Hex/Octal encoding (>10 seq) | 🟠 HIGH |
+| string.char construction | 🟠 HIGH |
+| Anti-decompile techniques | 🟠 HIGH |
+| I/l variable obfuscation | 🟠 HIGH |
+| Code minification | 🟡 MEDIUM |
+| High entropy strings | 🟡 MEDIUM |
 
-### Padrões Monitorados
-
-- **30+ padrões** de funções de exploit conhecidas
-- **Nomes suspeitos** de RemoteEvents/Functions
-- **Domínios não autorizados** em requisições HTTP
-- **Argumentos maliciosos** em Remote calls (overflow, código embutido, nesting excessivo)
-
-## 📊 Saída em JSON
-
-Todos os logs e relatórios são salvos em JSON estruturado:
-
-```json
-{
-  "report_version": "1.0.0",
-  "generated_at": "2026-04-16T10:00:00Z",
-  "summary": {
-    "total_vulnerabilities": 5,
-    "by_severity": { "CRITICAL": 2, "HIGH": 2, "MEDIUM": 1, "LOW": 0 },
-    "risk_level": "CRITICAL"
-  },
-  "vulnerabilities": [
-    {
-      "vuln_id": "VULN-CI-001",
-      "name": "Uso de loadstring",
-      "severity": "CRITICAL",
-      "source": "Game.Workspace.MaliciousScript",
-      "line_number": 3,
-      "remediation": "Evitar loadstring. Usar módulos pré-compilados."
-    }
-  ],
-  "recommendations": [...]
-}
-```
-
-### Arquivos Gerados (pasta `ScanningLua/`)
-
-| Arquivo | Conteúdo |
-|---------|----------|
-| `logs/scan_log_*.json` | Todos os logs da sessão |
-| `reports/scan_results_*.json` | Resultados do scan (remotes, scripts, itens suspeitos) |
-| `reports/vuln_report_*.json` | Relatório de vulnerabilidades com recomendações |
-| `reports/network_*.json` | Tráfego de rede e alertas |
+### Network — Domínios de Risco
+| Domínio | Risco | Motivo |
+|---------|-------|--------|
+| `iplogger.org` / `grabify.link` | 9 | IP grabber |
+| `ngrok.io` | 8 | Tunnel (C2) |
+| `webhook.site` / `requestbin.com` | 7 | Exfiltração |
+| `pastebin.com` / `hastebin.com` | 6-7 | Hosting de payloads |
+| `raw.githubusercontent.com` | 5 | Raw script hosting |
+| `discord.com` / `cdn.discordapp.com` | 4-5 | Webhook exfil |
+| `roblox.com` / `rbxcdn.com` | 0 | ✅ Confiável |
 
 ## ⚙️ API Completa
 
-| Método | Descrição |
-|--------|-----------|
-| `ScanningLua.fullScan([game])` | Scan completo de todos os serviços |
-| `ScanningLua.scanCode(code, name)` | Analisar string de código Lua |
-| `ScanningLua.scanScript(instance)` | Analisar instância de script |
-| `ScanningLua.monitorRemote(remote, cb)` | Monitorar um RemoteEvent |
-| `ScanningLua.monitorAllRemotes(cb)` | Monitorar todos os RemoteEvents |
-| `ScanningLua.logHTTPRequest(method, url)` | Registrar requisição HTTP |
-| `ScanningLua.saveAllResults()` | Salvar todos os relatórios em JSON |
-| `ScanningLua.getVulnerabilityReport()` | Retorna relatório como tabela |
-| `ScanningLua.getVulnerabilityReportJSON()` | Retorna relatório como JSON string |
-| `ScanningLua.getStats()` | Retorna estatísticas gerais |
-| `ScanningLua.printSummary()` | Imprime resumo no console |
-| `ScanningLua.reset()` | Limpa todos os dados |
-| `ScanningLua.shutdown()` | Encerra e salva tudo |
+```lua
+-- SCAN
+ScanningLua.fullScan()                -- Scan completo (auto-salva)
+ScanningLua.scanCode(code, name)      -- Analisar string de código → risk score
+ScanningLua.scanScript(instance)      -- Analisar instância de script
+
+-- MONITOR
+ScanningLua.monitorAllRemotes(cb)     -- Monitorar todos os RemoteEvents
+ScanningLua.logHTTP(method, url)      -- Registrar requisição HTTP
+
+-- CONFIGURAÇÃO
+ScanningLua.setDiscordWebhook(url)    -- Ativar alertas Discord
+
+-- RELATÓRIOS
+ScanningLua.printSummary()            -- Resumo formatado no console
+ScanningLua.getReport()               -- Relatório como tabela Lua
+ScanningLua.getReportJSON()           -- Relatório como JSON string
+ScanningLua.getStats()                -- Estatísticas gerais
+ScanningLua.getEnvironment()          -- Fingerprint do executor
+
+-- CONTROLE
+ScanningLua.saveAll()                 -- Salvar em JSON
+ScanningLua.reset()                   -- Limpar dados
+ScanningLua.shutdown()                -- Encerrar e salvar
+```
+
+## 📡 Discord Webhook
+
+Configure para receber alertas em tempo real:
+
+```lua
+ScanningLua.setDiscordWebhook("https://discord.com/api/webhooks/SEU_WEBHOOK_AQUI")
+ScanningLua.fullScan()  -- Envia resumo automaticamente
+```
 
 ## 🔧 Executando Localmente (Lua 5.1+)
 
@@ -139,8 +178,6 @@ Todos os logs e relatórios são salvos em JSON estruturado:
 cd Scanning-Lua
 lua main.lua
 ```
-
-Executa uma demonstração com dados simulados e gera relatórios nos diretórios `logs/` e `reports/`.
 
 ## 📝 Licença
 

@@ -7,7 +7,7 @@
 local Config = {}
 
 -- Versão do scanner
-Config.VERSION = "1.0.0"
+Config.VERSION = "2.0.0"
 Config.NAME = "Scanning-Lua"
 
 -- Diretórios de saída

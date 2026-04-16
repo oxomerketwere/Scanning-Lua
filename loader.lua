@@ -1,1191 +1,1651 @@
 --[[
     ╔══════════════════════════════════════════════════════════════╗
-    ║                    Scanning-Lua v1.0.0                      ║
+    ║                    Scanning-Lua v2.0.0                      ║
     ║          Scanner de Segurança para Roblox                   ║
     ║                                                              ║
-    ║  Arquivo único para loadstring — Wave Executor               ║
-    ║                                                              ║
-    ║  Uso:                                                        ║
-    ║    loadstring(game:HttpGet(                                   ║
-    ║      "https://raw.githubusercontent.com/                     ║
-    ║       oxomerketwere/Scanning-Lua/main/loader.lua"            ║
-    ║    ))()                                                       ║
+    ║  loadstring(game:HttpGet(                                    ║
+    ║    "https://raw.githubusercontent.com/                       ║
+    ║     oxomerketwere/Scanning-Lua/main/loader.lua"))()          ║
     ╚══════════════════════════════════════════════════════════════╝
 ]]
 
 -- ================================================================
--- MÓDULO: Config
+-- ANTI-DETECÇÃO: Nomes aleatórios para evitar fingerprinting
 -- ================================================================
-local Config = {}
+local function _rnd(n)
+    local c = "abcdefghijklmnopqrstuvwxyz"
+    local r = {}
+    for i = 1, (n or 8) do
+        local idx = math.random(1, #c)
+        r[i] = c:sub(idx, idx)
+    end
+    return table.concat(r)
+end
 
-Config.VERSION = "1.0.0"
-Config.NAME = "Scanning-Lua"
-
-Config.Logger = {
-    MIN_LEVEL = "DEBUG",
-    SAVE_TO_FILE = true,
-    FILE_PREFIX = "scan_log",
-    MAX_ENTRIES_PER_FILE = 10000,
-    INCLUDE_TIMESTAMP = true,
-    INCLUDE_STACKTRACE = true,
-}
-
-Config.Scanner = {
-    SCAN_REMOTE_EVENTS = true,
-    SCAN_REMOTE_FUNCTIONS = true,
-    SCAN_BINDABLE_EVENTS = true,
-    SCAN_HTTP_REQUESTS = true,
-    SCAN_LOADSTRING = true,
-    SCAN_REQUIRE = true,
-    SCAN_DATASTORE = true,
-    SCAN_MARKETPLACE = true,
-    AUTO_SCAN_INTERVAL = 30,
-    AUTO_SCAN_ENABLED = false,
-    MAX_DEPTH = 50,
-}
-
-Config.Filters = {
-    SUSPICIOUS_PATTERNS = {
-        "loadstring",
-        "HttpGet",
-        "HttpPost",
-        "GetObjects",
-        "require%((%d+)%)",
-        "game:GetService%(\"HttpService\"%)",
-        "syn%.request",
-        "http_request",
-        "request",
-        "getrawmetatable",
-        "setrawmetatable",
-        "hookfunction",
-        "hookmetamethod",
-        "newcclosure",
-        "getnamecallmethod",
-        "setnamecallmethod",
-        "getgenv",
-        "getrenv",
-        "getfenv",
-        "setfenv",
-        "debug%.getupvalue",
-        "debug%.setupvalue",
-        "debug%.getinfo",
-        "debug%.getconstant",
-        "debug%.setconstant",
-        "firesignal",
-        "fireserver",
-        "fireclickdetector",
-        "firetouchinterest",
-        "fireproximityprompt",
-    },
-    MONITORED_SERVICES = {
-        "ReplicatedStorage",
-        "ServerScriptService",
-        "ServerStorage",
-        "Workspace",
-        "Players",
-        "Lighting",
-        "StarterGui",
-        "StarterPack",
-        "StarterPlayer",
-    },
-    SUSPICIOUS_REMOTE_NAMES = {
-        ".*Event.*",
-        ".*Remote.*",
-        ".*Fire.*",
-        ".*Send.*",
-        ".*Invoke.*",
-        ".*Handler.*",
-        ".*Callback.*",
-    },
-    MIN_SEVERITY = "LOW",
-}
-
-Config.Vulnerability = {
-    CATEGORIES = {
-        "REMOTE_ABUSE",
-        "CODE_INJECTION",
-        "DATA_EXFILTRATION",
-        "PRIVILEGE_ESCALATION",
-        "MEMORY_MANIPULATION",
-        "NETWORK_EXPLOIT",
-        "AUTHENTICATION_BYPASS",
-        "INPUT_VALIDATION",
-    },
-    AUTO_REPORT = true,
-    REPORT_FORMAT = "json",
-}
-
-Config.Network = {
-    MONITOR_HTTP = true,
-    MONITOR_WEBSOCKET = true,
-    ALLOWED_DOMAINS = {
-        "roblox.com",
-        "rbxcdn.com",
-        "robloxcdn.com",
-    },
-    LOG_ALL_REQUESTS = false,
-}
+-- Nomes internos randomizados a cada execução
+local _ID = _rnd(12)
+local _TS = os.time()
 
 -- ================================================================
--- MÓDULO: JSON
+-- MÓDULO: JSON (encoder/decoder completo)
 -- ================================================================
-local JSON = {}
-
-local ESCAPE_MAP = {
-    ["\\"] = "\\\\",
-    ['"'] = '\\"',
-    ["\n"] = "\\n",
-    ["\r"] = "\\r",
-    ["\t"] = "\\t",
-    ["\b"] = "\\b",
-    ["\f"] = "\\f",
+local _J = {}
+local _ESC = {
+    ["\\"]="\\\\", ['"']='\\"', ["\n"]="\\n",
+    ["\r"]="\\r", ["\t"]="\\t", ["\b"]="\\b", ["\f"]="\\f",
 }
 
-local function escapeString(str)
-    str = str:gsub('[\\"%c]', function(c)
-        return ESCAPE_MAP[c] or string.format("\\u%04x", string.byte(c))
+local function _escStr(s)
+    return s:gsub('[\\"%c]', function(c)
+        return _ESC[c] or string.format("\\u%04x", string.byte(c))
     end)
-    return str
 end
 
-local function isArray(tbl)
-    local count = 0
-    for _ in pairs(tbl) do
-        count = count + 1
-    end
-    for i = 1, count do
-        if tbl[i] == nil then
-            return false
-        end
-    end
-    return count > 0
+local function _isArr(t)
+    local n = 0
+    for _ in pairs(t) do n = n + 1 end
+    for i = 1, n do if t[i] == nil then return false end end
+    return n > 0
 end
 
-function JSON.encode(value, indent, currentIndent)
-    indent = indent or nil
-    currentIndent = currentIndent or 0
-
-    local valueType = type(value)
-
-    if value == nil then
-        return "null"
-    elseif valueType == "boolean" then
-        return tostring(value)
-    elseif valueType == "number" then
-        if value ~= value then return "null" end
-        if value == math.huge then return "null" end
-        if value == -math.huge then return "null" end
-        return tostring(value)
-    elseif valueType == "string" then
-        return '"' .. escapeString(value) .. '"'
-    elseif valueType == "table" then
-        local parts = {}
-        local newIndent = currentIndent + (indent or 0)
-        local separator = indent and ",\n" or ","
-        local padding = indent and string.rep(" ", newIndent) or ""
-        local closePadding = indent and string.rep(" ", currentIndent) or ""
-        local colon = indent and ": " or ":"
-
-        if isArray(value) then
-            for i = 1, #value do
-                local encoded = JSON.encode(value[i], indent, newIndent)
-                parts[#parts + 1] = padding .. encoded
-            end
-            if #parts == 0 then return "[]" end
-            if indent then
-                return "[\n" .. table.concat(parts, separator) .. "\n" .. closePadding .. "]"
+function _J.encode(v, ind, ci)
+    ind = ind or nil; ci = ci or 0
+    local tp = type(v)
+    if v == nil then return "null"
+    elseif tp == "boolean" then return tostring(v)
+    elseif tp == "number" then
+        if v ~= v or v == math.huge or v == -math.huge then return "null" end
+        return tostring(v)
+    elseif tp == "string" then return '"'.._escStr(v)..'"'
+    elseif tp == "table" then
+        local p = {}
+        local ni = ci + (ind or 0)
+        local sep = ind and ",\n" or ","
+        local pad = ind and string.rep(" ", ni) or ""
+        local cp = ind and string.rep(" ", ci) or ""
+        local col = ind and ": " or ":"
+        if _isArr(v) then
+            for i = 1, #v do p[#p+1] = pad.._J.encode(v[i], ind, ni) end
+            if #p == 0 then return "[]" end
+            if ind then return "[\n"..table.concat(p, sep).."\n"..cp.."]"
             else
-                local compactParts = {}
-                for i = 1, #value do
-                    compactParts[#compactParts + 1] = JSON.encode(value[i], indent, newIndent)
-                end
-                return "[" .. table.concat(compactParts, ",") .. "]"
+                local c = {}
+                for i = 1, #v do c[#c+1] = _J.encode(v[i], ind, ni) end
+                return "["..table.concat(c, ",").."]"
             end
         else
-            local keys = {}
-            for k in pairs(value) do
-                if type(k) == "string" or type(k) == "number" then
-                    keys[#keys + 1] = k
-                end
+            local ks = {}
+            for k in pairs(v) do
+                if type(k) == "string" or type(k) == "number" then ks[#ks+1] = k end
             end
-            table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
-
-            for _, k in ipairs(keys) do
-                local keyStr = '"' .. escapeString(tostring(k)) .. '"'
-                local encoded = JSON.encode(value[k], indent, newIndent)
-                parts[#parts + 1] = padding .. keyStr .. colon .. encoded
+            table.sort(ks, function(a,b) return tostring(a)<tostring(b) end)
+            for _, k in ipairs(ks) do
+                local kk = '"'.._escStr(tostring(k))..'"'
+                p[#p+1] = pad..kk..col.._J.encode(v[k], ind, ni)
             end
-            if #parts == 0 then return "{}" end
-            if indent then
-                return "{\n" .. table.concat(parts, separator) .. "\n" .. closePadding .. "}"
+            if #p == 0 then return "{}" end
+            if ind then return "{\n"..table.concat(p, sep).."\n"..cp.."}"
             else
-                local compactParts = {}
-                for _, k in ipairs(keys) do
-                    local keyStr = '"' .. escapeString(tostring(k)) .. '"'
-                    local encoded = JSON.encode(value[k], indent, newIndent)
-                    compactParts[#compactParts + 1] = keyStr .. ":" .. encoded
+                local c = {}
+                for _, k in ipairs(ks) do
+                    c[#c+1] = '"'.._escStr(tostring(k))..'":'
+                        .._J.encode(v[k], ind, ni)
                 end
-                return "{" .. table.concat(compactParts, ",") .. "}"
+                return "{"..table.concat(c, ",").."}"
             end
         end
-    else
-        return "null"
     end
+    return "null"
 end
 
-function JSON.encodePretty(value, indentSize)
-    return JSON.encode(value, indentSize or 2, 0)
-end
+function _J.pretty(v, sz) return _J.encode(v, sz or 2, 0) end
 
-function JSON.decode(str)
-    if type(str) ~= "string" then
-        return nil, "Expected string, got " .. type(str)
-    end
-
+function _J.decode(str)
+    if type(str) ~= "string" then return nil, "Expected string" end
     local pos = 1
-
-    local function skipWhitespace()
-        pos = str:find("[^ \t\r\n]", pos) or (#str + 1)
-    end
-
-    local function peek()
-        return str:sub(pos, pos)
-    end
-
-    local function consume(expected)
-        if str:sub(pos, pos) ~= expected then return false end
-        pos = pos + 1
-        return true
-    end
-
-    local parseValue
-
-    local function parseString()
-        if not consume('"') then return nil, "Expected '\"' at position " .. pos end
-        local result = {}
+    local function sw() pos = str:find("[^ \t\r\n]", pos) or (#str+1) end
+    local function pk() return str:sub(pos, pos) end
+    local function eat(e) if str:sub(pos,pos)~=e then return false end; pos=pos+1; return true end
+    local pv
+    local function ps()
+        if not eat('"') then return nil, "Expected '\"'" end
+        local r = {}
         while pos <= #str do
-            local c = str:sub(pos, pos)
-            if c == '"' then
-                pos = pos + 1
-                return table.concat(result)
+            local c = str:sub(pos,pos)
+            if c == '"' then pos=pos+1; return table.concat(r)
             elseif c == '\\' then
-                pos = pos + 1
-                local esc = str:sub(pos, pos)
-                if esc == '"' then result[#result + 1] = '"'
-                elseif esc == '\\' then result[#result + 1] = '\\'
-                elseif esc == '/' then result[#result + 1] = '/'
-                elseif esc == 'n' then result[#result + 1] = '\n'
-                elseif esc == 'r' then result[#result + 1] = '\r'
-                elseif esc == 't' then result[#result + 1] = '\t'
-                elseif esc == 'b' then result[#result + 1] = '\b'
-                elseif esc == 'f' then result[#result + 1] = '\f'
-                elseif esc == 'u' then
-                    local hex = str:sub(pos + 1, pos + 4)
-                    local codepoint = tonumber(hex, 16)
-                    if codepoint then
-                        if codepoint < 128 then
-                            result[#result + 1] = string.char(codepoint)
+                pos=pos+1; local e=str:sub(pos,pos)
+                if e=='"' then r[#r+1]='"' elseif e=='\\' then r[#r+1]='\\'
+                elseif e=='n' then r[#r+1]='\n' elseif e=='r' then r[#r+1]='\r'
+                elseif e=='t' then r[#r+1]='\t' elseif e=='/' then r[#r+1]='/'
+                elseif e=='u' then
+                    local h=str:sub(pos+1,pos+4); local cp=tonumber(h,16)
+                    if cp then
+                        if cp<128 then r[#r+1]=string.char(cp)
+                        elseif cp<2048 then
+                            r[#r+1]=string.char(192+math.floor(cp/64), 128+(cp%64))
                         else
-                            result[#result + 1] = string.char(
-                                192 + math.floor(codepoint / 64),
-                                128 + (codepoint % 64)
-                            )
+                            r[#r+1]=string.char(224+math.floor(cp/4096),
+                                128+math.floor((cp%4096)/64), 128+(cp%64))
                         end
-                        pos = pos + 4
+                        pos=pos+4
                     end
                 end
-                pos = pos + 1
-            else
-                result[#result + 1] = c
-                pos = pos + 1
-            end
+                pos=pos+1
+            else r[#r+1]=c; pos=pos+1 end
         end
         return nil, "Unterminated string"
     end
-
-    local function parseNumber()
-        local startPos = pos
-        if str:sub(pos, pos) == '-' then pos = pos + 1 end
-        while pos <= #str and str:sub(pos, pos):match("%d") do pos = pos + 1 end
-        if pos <= #str and str:sub(pos, pos) == '.' then
-            pos = pos + 1
-            while pos <= #str and str:sub(pos, pos):match("%d") do pos = pos + 1 end
+    local function pn()
+        local sp=pos
+        if str:sub(pos,pos)=='-' then pos=pos+1 end
+        while pos<=#str and str:sub(pos,pos):match("%d") do pos=pos+1 end
+        if pos<=#str and str:sub(pos,pos)=='.' then
+            pos=pos+1
+            while pos<=#str and str:sub(pos,pos):match("%d") do pos=pos+1 end
         end
-        if pos <= #str and str:sub(pos, pos):match("[eE]") then
-            pos = pos + 1
-            if pos <= #str and str:sub(pos, pos):match("[%+%-]") then pos = pos + 1 end
-            while pos <= #str and str:sub(pos, pos):match("%d") do pos = pos + 1 end
+        if pos<=#str and str:sub(pos,pos):match("[eE]") then
+            pos=pos+1
+            if pos<=#str and str:sub(pos,pos):match("[%+%-]") then pos=pos+1 end
+            while pos<=#str and str:sub(pos,pos):match("%d") do pos=pos+1 end
         end
-        local num = tonumber(str:sub(startPos, pos - 1))
-        if not num then return nil, "Invalid number at position " .. startPos end
-        return num
+        return tonumber(str:sub(sp,pos-1))
     end
-
-    local function parseArray()
-        if not consume('[') then return nil, "Expected '['" end
-        local arr = {}
-        skipWhitespace()
-        if peek() == ']' then pos = pos + 1; return arr end
+    local function pa()
+        if not eat('[') then return nil end
+        local a={}; sw()
+        if pk()==']' then pos=pos+1; return a end
         while true do
-            skipWhitespace()
-            local val, err = parseValue()
-            if err then return nil, err end
-            arr[#arr + 1] = val
-            skipWhitespace()
-            if not consume(',') then break end
+            sw(); local v,e=pv(); if e then return nil,e end
+            a[#a+1]=v; sw(); if not eat(',') then break end
         end
-        if not consume(']') then return nil, "Expected ']' at position " .. pos end
-        return arr
+        if not eat(']') then return nil,"Expected ']'" end; return a
     end
-
-    local function parseObject()
-        if not consume('{') then return nil, "Expected '{'" end
-        local obj = {}
-        skipWhitespace()
-        if peek() == '}' then pos = pos + 1; return obj end
+    local function po()
+        if not eat('{') then return nil end
+        local o={}; sw()
+        if pk()=='}' then pos=pos+1; return o end
         while true do
-            skipWhitespace()
-            local key, err = parseString()
-            if err then return nil, err end
-            skipWhitespace()
-            if not consume(':') then return nil, "Expected ':' at position " .. pos end
-            skipWhitespace()
-            local val
-            val, err = parseValue()
-            if err then return nil, err end
-            obj[key] = val
-            skipWhitespace()
-            if not consume(',') then break end
+            sw(); local k,e=ps(); if e then return nil,e end
+            sw(); if not eat(':') then return nil,"Expected ':'" end
+            sw(); local v; v,e=pv(); if e then return nil,e end
+            o[k]=v; sw(); if not eat(',') then break end
         end
-        if not consume('}') then return nil, "Expected '}' at position " .. pos end
-        return obj
+        if not eat('}') then return nil,"Expected '}'" end; return o
+    end
+    pv = function()
+        sw(); local c=pk()
+        if c=='"' then return ps()
+        elseif c=='{' then return po()
+        elseif c=='[' then return pa()
+        elseif c=='t' then if str:sub(pos,pos+3)=="true" then pos=pos+4; return true end
+        elseif c=='f' then if str:sub(pos,pos+4)=="false" then pos=pos+5; return false end
+        elseif c=='n' then if str:sub(pos,pos+3)=="null" then pos=pos+4; return nil end
+        elseif c=='-' or (c and c:match("%d")) then return pn()
+        end
+        return nil, "Unexpected '"..tostring(c).."' at "..pos
+    end
+    return pv()
+end
+
+-- ================================================================
+-- MÓDULO: Logger (buffered, anti-detection)
+-- ================================================================
+local _L = {}; _L.__index = _L
+local _LL = { DEBUG=1, INFO=2, WARN=3, ERROR=4, CRITICAL=5 }
+
+function _L.new(minLevel, bufferOutput)
+    local self = setmetatable({}, _L)
+    self.min = _LL[minLevel] or _LL.INFO
+    self.entries = {}
+    self.count = 0
+    self.sid = _ID
+    self.start = _TS
+    self.buffer = bufferOutput or false -- Anti-detecção: não printar imediatamente
+    self.pendingPrints = {}
+    return self
+end
+
+function _L:_ts() return os.date("!%Y-%m-%dT%H:%M:%SZ") end
+
+function _L:_add(level, cat, msg, data)
+    local lv = _LL[level]
+    if not lv or lv < self.min then return end
+    self.count = self.count + 1
+    local e = {
+        id = self.count, timestamp = self:_ts(), level = level,
+        category = cat, message = msg, session = self.sid,
+    }
+    if data then e.data = data end
+    if (level == "ERROR" or level == "CRITICAL") and debug and debug.traceback then
+        e.stack = debug.traceback("", 3)
+    end
+    self.entries[#self.entries + 1] = e
+
+    -- Anti-detecção: buffered output
+    local line = string.format("[%s][%s][%s] %s", e.timestamp, level, cat, msg)
+    if self.buffer then
+        self.pendingPrints[#self.pendingPrints + 1] = line
+    else
+        print(line)
+    end
+    return e
+end
+
+function _L:flushPrints()
+    for _, line in ipairs(self.pendingPrints) do print(line) end
+    self.pendingPrints = {}
+end
+
+function _L:debug(c, m, d) return self:_add("DEBUG", c, m, d) end
+function _L:info(c, m, d) return self:_add("INFO", c, m, d) end
+function _L:warn(c, m, d) return self:_add("WARN", c, m, d) end
+function _L:error(c, m, d) return self:_add("ERROR", c, m, d) end
+function _L:critical(c, m, d) return self:_add("CRITICAL", c, m, d) end
+
+function _L:save(filename)
+    if #self.entries == 0 then return true end
+    local data = {
+        metadata = {
+            session_id = self.sid, start_time = os.date("!%Y-%m-%dT%H:%M:%SZ", self.start),
+            version = "2.0.0",
+        },
+        total_entries = #self.entries, entries = self.entries,
+    }
+    local json = _J.pretty(data)
+    local ok = false
+    -- writefile (Roblox executors)
+    pcall(function()
+        if writefile then writefile(filename, json); ok = true end
+    end)
+    -- Fallback: io.open
+    if not ok then
+        pcall(function()
+            local f = io.open(filename, "w")
+            if f then f:write(json); f:close(); ok = true end
+        end)
+    end
+    if ok then self.entries = {}; self.count = 0 end
+    return ok
+end
+
+function _L:toJSON()
+    return _J.pretty({
+        metadata = { session_id = self.sid, version = "2.0.0" },
+        total_entries = #self.entries, entries = self.entries,
+    })
+end
+
+function _L:getStats()
+    local s = { total = #self.entries, by_level = { DEBUG=0, INFO=0, WARN=0, ERROR=0, CRITICAL=0 } }
+    for _, e in ipairs(self.entries) do s.by_level[e.level] = (s.by_level[e.level] or 0) + 1 end
+    return s
+end
+
+-- ================================================================
+-- 🔥 MÓDULO: Risk Score Engine (ANÁLISE CONTEXTUAL)
+-- ================================================================
+local _RS = {}; _RS.__index = _RS
+
+-- Pesos de risco por tipo de padrão
+local RISK_WEIGHTS = {
+    -- Execução dinâmica (peso alto)
+    loadstring = 8,
+    -- Rede
+    HttpGet = 4, HttpPost = 4,
+    ["syn%.request"] = 5, http_request = 5, request = 3,
+    -- Metatable/hooking (crítico)
+    getrawmetatable = 7, setrawmetatable = 9,
+    hookfunction = 9, hookmetamethod = 9,
+    -- Ambiente
+    getgenv = 5, getrenv = 5, getfenv = 6, setfenv = 8,
+    -- Debug
+    ["debug%.getupvalue"] = 4, ["debug%.setupvalue"] = 7,
+    ["debug%.getinfo"] = 3, ["debug%.getconstant"] = 4,
+    ["debug%.setconstant"] = 7,
+    -- Namecall
+    getnamecallmethod = 5, setnamecallmethod = 6,
+    newcclosure = 5,
+    -- Input simulation
+    firesignal = 4, fireserver = 5,
+    fireclickdetector = 3, firetouchinterest = 3, fireproximityprompt = 3,
+    -- Outros
+    GetObjects = 3,
+    ["require%((%d+)%)"] = 4,
+}
+
+-- Combinações perigosas (multiplicadores)
+local RISK_COMBOS = {
+    { patterns = { "loadstring", "HttpGet" },       multiplier = 2.5, name = "Remote Code Execution" },
+    { patterns = { "loadstring", "HttpPost" },      multiplier = 2.5, name = "Remote Code Execution" },
+    { patterns = { "getrawmetatable", "hookfunction" }, multiplier = 2.0, name = "Full Environment Hijack" },
+    { patterns = { "getrawmetatable", "setrawmetatable" }, multiplier = 2.0, name = "Metatable Takeover" },
+    { patterns = { "getnamecallmethod", "setnamecallmethod" }, multiplier = 1.8, name = "Namecall Hijack" },
+    { patterns = { "getgenv", "hookfunction" },     multiplier = 1.8, name = "Global Hook Injection" },
+    { patterns = { "getrenv", "hookfunction" },     multiplier = 1.8, name = "Registry Hook Injection" },
+    { patterns = { "HttpGet", "getgenv" },          multiplier = 1.5, name = "Remote Data to Global" },
+    { patterns = { "debug%.setupvalue", "getfenv" }, multiplier = 2.0, name = "Upvalue + Env Manipulation" },
+    { patterns = { "fireserver", "getrawmetatable" }, multiplier = 1.7, name = "Spoofed Server Call" },
+    { patterns = { "syn%.request", "getgenv" },     multiplier = 1.6, name = "Exfiltration via Request" },
+}
+
+function _RS.new(logger)
+    local self = setmetatable({}, _RS)
+    self.logger = logger
+    self.analyses = {}
+    return self
+end
+
+--- Remove comentários para análise limpa
+local function _stripComments(code)
+    code = code:gsub("%-%-%[%[.-%]%]", "")   -- bloco
+    code = code:gsub("%-%-[^\n]*", "")         -- linha
+    return code
+end
+
+--- Analisa código com score de risco contextual
+--- @param code string Código a analisar
+--- @param source string Identificador
+--- @return table Análise completa com score
+function _RS:analyze(code, source)
+    if type(code) ~= "string" then
+        return { score = 0, level = "NONE", findings = {} }
     end
 
-    parseValue = function()
-        skipWhitespace()
-        local c = peek()
-        if c == '"' then return parseString()
-        elseif c == '{' then return parseObject()
-        elseif c == '[' then return parseArray()
-        elseif c == 't' then
-            if str:sub(pos, pos + 3) == "true" then pos = pos + 4; return true end
-            return nil, "Invalid value at position " .. pos
-        elseif c == 'f' then
-            if str:sub(pos, pos + 4) == "false" then pos = pos + 5; return false end
-            return nil, "Invalid value at position " .. pos
-        elseif c == 'n' then
-            if str:sub(pos, pos + 3) == "null" then pos = pos + 4; return nil end
-            return nil, "Invalid value at position " .. pos
-        elseif c == '-' or c:match("%d") then return parseNumber()
-        else return nil, "Unexpected character '" .. c .. "' at position " .. pos
+    source = source or "unknown"
+    local clean = _stripComments(code)
+    local score = 0
+    local findings = {}
+    local foundPatterns = {}
+
+    -- 1. Detectar padrões individuais e somar pesos
+    for pattern, weight in pairs(RISK_WEIGHTS) do
+        local searchStart = 1
+        local matchCount = 0
+        while true do
+            local ms, me = clean:find(pattern, searchStart)
+            if not ms then break end
+            matchCount = matchCount + 1
+            searchStart = me + 1
+        end
+        if matchCount > 0 then
+            -- Peso diminui após 3 ocorrências (não contar spam)
+            local effectiveWeight = weight * math.min(matchCount, 3)
+            score = score + effectiveWeight
+            foundPatterns[pattern] = matchCount
+
+            -- Extrair linha
+            local lineNum = 1
+            local firstPos = clean:find(pattern)
+            if firstPos then
+                for _ in clean:sub(1, firstPos):gmatch("\n") do lineNum = lineNum + 1 end
+            end
+
+            findings[#findings + 1] = {
+                pattern = pattern,
+                count = matchCount,
+                weight = weight,
+                effective_weight = effectiveWeight,
+                line = lineNum,
+                severity = weight >= 7 and "CRITICAL" or (weight >= 5 and "HIGH" or (weight >= 3 and "MEDIUM" or "LOW")),
+            }
         end
     end
 
-    local result, err = parseValue()
-    if err then return nil, err end
+    -- 2. Verificar combinações perigosas (multiplicadores)
+    local combosFound = {}
+    for _, combo in ipairs(RISK_COMBOS) do
+        local allPresent = true
+        for _, pat in ipairs(combo.patterns) do
+            if not foundPatterns[pat] then
+                allPresent = false
+                break
+            end
+        end
+        if allPresent then
+            score = score * combo.multiplier
+            combosFound[#combosFound + 1] = {
+                name = combo.name,
+                patterns = combo.patterns,
+                multiplier = combo.multiplier,
+            }
+        end
+    end
+
+    -- 3. Bonus por ofuscação (analisado separadamente mas impacta score)
+    local obfScore = self:_quickObfuscationScore(clean)
+    if obfScore > 0 then
+        score = score + obfScore
+        findings[#findings + 1] = {
+            pattern = "_OBFUSCATION_",
+            count = 1,
+            weight = obfScore,
+            effective_weight = obfScore,
+            severity = obfScore >= 15 and "CRITICAL" or (obfScore >= 8 and "HIGH" or "MEDIUM"),
+        }
+    end
+
+    -- 4. Calcular nível
+    local level = "NONE"
+    if score >= 50 then level = "CRITICAL"
+    elseif score >= 25 then level = "HIGH"
+    elseif score >= 10 then level = "MEDIUM"
+    elseif score > 0 then level = "LOW"
+    end
+
+    local result = {
+        source = source,
+        score = math.floor(score * 100) / 100, -- 2 decimais
+        level = level,
+        findings = findings,
+        combos = combosFound,
+        patterns_found = foundPatterns,
+        code_length = #code,
+        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+    }
+
+    self.analyses[#self.analyses + 1] = result
+
+    if self.logger then
+        local emoji = level == "CRITICAL" and "🔴" or
+            (level == "HIGH" and "🟠" or (level == "MEDIUM" and "🟡" or "🟢"))
+        self.logger:info("RISK", string.format(
+            "%s [%s] Score: %.1f | %d padrões | %d combos | %s",
+            emoji, level, score, #findings, #combosFound, source
+        ), { score = result.score, level = level })
+    end
+
     return result
 end
 
--- ================================================================
--- MÓDULO: Logger
--- ================================================================
-local Logger = {}
-Logger.__index = Logger
+--- Score rápido de ofuscação (para compor o risk score)
+function _RS:_quickObfuscationScore(code)
+    local s = 0
+    -- Muitas concatenações
+    local concats = 0
+    for _ in code:gmatch("%.%.") do concats = concats + 1 end
+    if concats > 20 then s = s + 5 end
 
-local LOG_LEVELS = { DEBUG = 1, INFO = 2, WARN = 3, ERROR = 4, CRITICAL = 5 }
+    -- Hex encoding
+    local hexCount = 0
+    for _ in code:gmatch("\\x%x%x") do hexCount = hexCount + 1 end
+    if hexCount > 10 then s = s + 6 end
 
-function Logger.new(config)
-    local self = setmetatable({}, Logger)
-    self.config = config or {}
-    self.minLevel = LOG_LEVELS[config.MIN_LEVEL] or LOG_LEVELS.DEBUG
-    self.entries = {}
-    self.sessionId = Logger._generateSessionId()
-    self.startTime = os.time()
-    self.entryCount = 0
-    self.sessionMeta = {
-        session_id = self.sessionId,
-        start_time = os.date("!%Y-%m-%dT%H:%M:%SZ", self.startTime),
-        scanner_version = Config.VERSION,
-        log_level = config.MIN_LEVEL or "DEBUG",
-    }
-    return self
-end
-
-function Logger._generateSessionId()
-    local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
-    return string.gsub(template, "[xy]", function(c)
-        local v = (c == "x") and math.random(0, 15) or math.random(8, 11)
-        return string.format("%x", v)
-    end)
-end
-
-function Logger._getTimestamp()
-    return os.date("!%Y-%m-%dT%H:%M:%SZ")
-end
-
-function Logger:_createEntry(level, category, message, data)
-    self.entryCount = self.entryCount + 1
-    local entry = {
-        id = self.entryCount,
-        timestamp = Logger._getTimestamp(),
-        level = level,
-        category = category,
-        message = message,
-        session_id = self.sessionId,
-    }
-    if data then entry.data = data end
-    if self.config.INCLUDE_STACKTRACE and (level == "ERROR" or level == "CRITICAL") then
-        entry.stacktrace = debug.traceback("", 3)
-    end
-    return entry
-end
-
-function Logger:_log(level, category, message, data)
-    local levelNum = LOG_LEVELS[level]
-    if not levelNum or levelNum < self.minLevel then return end
-    local entry = self:_createEntry(level, category, message, data)
-    self.entries[#self.entries + 1] = entry
-    local prefix = string.format("[%s][%s][%s]", entry.timestamp, level, category)
-    print(prefix .. " " .. message)
-    if self.config.MAX_ENTRIES_PER_FILE and #self.entries >= self.config.MAX_ENTRIES_PER_FILE then
-        self:flush()
-    end
-    return entry
-end
-
-function Logger:debug(category, message, data) return self:_log("DEBUG", category, message, data) end
-function Logger:info(category, message, data) return self:_log("INFO", category, message, data) end
-function Logger:warn(category, message, data) return self:_log("WARN", category, message, data) end
-function Logger:error(category, message, data) return self:_log("ERROR", category, message, data) end
-function Logger:critical(category, message, data) return self:_log("CRITICAL", category, message, data) end
-
-function Logger:flush(filename)
-    if #self.entries == 0 then return true end
-    local logData = {
-        metadata = self.sessionMeta,
-        total_entries = #self.entries,
-        entries = self.entries,
-    }
-    local jsonStr = JSON.encodePretty(logData)
-
-    -- Tentar salvar via writefile (disponível na maioria dos executors Roblox)
-    local saved = false
-    if writefile then
-        local fname = filename or string.format("ScanningLua/scan_log_%s.json", os.date("!%Y%m%d_%H%M%S"))
-        local ok = pcall(function() writefile(fname, jsonStr) end)
-        if ok then
-            print("[Logger] " .. #self.entries .. " entradas salvas em: " .. fname)
-            saved = true
+    -- Base64
+    for str in code:gmatch('"([^"]+)"') do
+        if #str > 200 and str:match("^[A-Za-z0-9+/=]+$") then
+            s = s + 8
+            break
         end
     end
 
-    -- Fallback: io.open (Lua padrão)
-    if not saved then
-        local fname = filename or string.format("scan_log_%s.json", os.date("!%Y%m%d_%H%M%S"))
-        local file = io.open(fname, "w")
-        if file then
-            file:write(jsonStr)
-            file:close()
-            print("[Logger] " .. #self.entries .. " entradas salvas em: " .. fname)
-            saved = true
-        end
-    end
-
-    if not saved then
-        print("[Logger] Não foi possível salvar em arquivo. JSON no console:")
-        print(jsonStr)
-    end
-
-    self.entries = {}
-    self.entryCount = 0
-    return true
-end
-
-function Logger:toJSON()
-    local logData = {
-        metadata = self.sessionMeta,
-        total_entries = #self.entries,
-        entries = self.entries,
+    -- Ofuscadores conhecidos
+    local obfPatterns = {
+        "IIlIIlIIlIlI", "LPH_", "PSU_", "Moonsec",
+        "IllIllIllI", "ILIIILIIIL",
     }
-    return JSON.encodePretty(logData)
-end
-
-function Logger:getStats()
-    local stats = {
-        session_id = self.sessionId,
-        total_entries = #self.entries,
-        by_level = { DEBUG = 0, INFO = 0, WARN = 0, ERROR = 0, CRITICAL = 0 },
-    }
-    for _, entry in ipairs(self.entries) do
-        if stats.by_level[entry.level] then
-            stats.by_level[entry.level] = stats.by_level[entry.level] + 1
-        end
+    for _, p in ipairs(obfPatterns) do
+        if code:find(p, 1, true) then s = s + 15; break end
     end
-    return stats
+
+    -- String.char em massa
+    local scharCount = 0
+    for _ in code:gmatch("string%.char") do scharCount = scharCount + 1 end
+    if scharCount > 5 then s = s + 5 end
+
+    -- Linhas gigantes (minificação)
+    for line in code:gmatch("[^\n]+") do
+        if #line > 1000 then s = s + 4; break end
+    end
+
+    -- Poucas linhas, muito código
+    local lines = 0
+    for _ in code:gmatch("\n") do lines = lines + 1 end
+    if lines < 10 and #code > 5000 then s = s + 6 end
+
+    return s
 end
 
-function Logger:close()
-    self:info("LOGGER", "Encerrando sessão de log", {
-        session_id = self.sessionId,
-        duration_seconds = os.time() - self.startTime,
-        total_entries = #self.entries,
-    })
-    self:flush()
-end
+function _RS:getAnalyses() return self.analyses end
 
 -- ================================================================
--- MÓDULO: Filters
+-- 🧠 MÓDULO: Obfuscation Detector (COMPLETO)
 -- ================================================================
-local Filters = {}
-Filters.__index = Filters
+local _OD = {}; _OD.__index = _OD
 
-local SEVERITY_LEVELS = { LOW = 1, MEDIUM = 2, HIGH = 3, CRITICAL = 4 }
-
-function Filters.new(config, logger)
-    local self = setmetatable({}, Filters)
-    self.config = config or {}
+function _OD.new(logger)
+    local self = setmetatable({}, _OD)
     self.logger = logger
-    self.minSeverity = SEVERITY_LEVELS[config.MIN_SEVERITY] or SEVERITY_LEVELS.LOW
-    self.matchHistory = {}
-    self.stats = {
-        total_scanned = 0,
-        total_matches = 0,
-        by_severity = { LOW = 0, MEDIUM = 0, HIGH = 0, CRITICAL = 0 },
-        by_category = {},
-    }
+    self.detections = {}
+    self.stats = { total = 0, detected = 0, by_technique = {} }
     return self
 end
 
-function Filters:classifySeverity(pattern)
-    local criticalPatterns = {
-        "getrawmetatable", "setrawmetatable", "hookfunction", "hookmetamethod",
-        "debug%.setupvalue", "debug%.setconstant", "setfenv",
-    }
-    for _, cp in ipairs(criticalPatterns) do
-        if pattern:find(cp, 1, true) then return "CRITICAL" end
-    end
-
-    local highPatterns = {
-        "loadstring", "HttpGet", "HttpPost", "syn%.request",
-        "http_request", "getfenv", "getrenv", "getgenv",
-    }
-    for _, hp in ipairs(highPatterns) do
-        if pattern:find(hp, 1, true) then return "HIGH" end
-    end
-
-    local mediumPatterns = {
-        "getnamecallmethod", "setnamecallmethod", "newcclosure",
-        "firesignal", "fireserver", "fireclickdetector",
-        "firetouchinterest", "fireproximityprompt",
-        "debug%.getupvalue", "debug%.getinfo", "debug%.getconstant",
-    }
-    for _, mp in ipairs(mediumPatterns) do
-        if pattern:find(mp, 1, true) then return "MEDIUM" end
-    end
-
-    return "LOW"
-end
-
-function Filters:analyzeCode(code, source)
+function _OD:analyze(code, source)
     if type(code) ~= "string" then return {} end
-    self.stats.total_scanned = self.stats.total_scanned + 1
-    local matches = {}
-    local patterns = self.config.SUSPICIOUS_PATTERNS or {}
+    self.stats.total = self.stats.total + 1
+    source = source or "unknown"
+    local dets = {}
 
-    for _, pattern in ipairs(patterns) do
-        local startPos = 1
-        while true do
-            local matchStart, matchEnd = code:find(pattern, startPos)
-            if not matchStart then break end
-            local matchedText = code:sub(matchStart, matchEnd)
-            local severity = self:classifySeverity(pattern)
-            local severityLevel = SEVERITY_LEVELS[severity] or 0
+    self:_concatEvasion(code, source, dets)
+    self:_stringEncoding(code, source, dets)
+    self:_base64Detection(code, source, dets)
+    self:_minification(code, source, dets)
+    self:_knownObfuscators(code, source, dets)
+    self:_stringCharConstruction(code, source, dets)
+    self:_tableConcat(code, source, dets)
+    self:_antiDecompile(code, source, dets)
+    self:_highEntropy(code, source, dets)
+    self:_variableObfuscation(code, source, dets)
 
-            if severityLevel >= self.minSeverity then
-                local lineNum = 1
-                for _ in code:sub(1, matchStart):gmatch("\n") do lineNum = lineNum + 1 end
-                local lineStart = code:sub(1, matchStart):match(".*\n()") or 1
-                local lineEnd = code:find("\n", matchEnd) or #code
-                local line = code:sub(lineStart, lineEnd):gsub("^%s+", ""):gsub("%s+$", "")
-
-                local match = {
-                    pattern = pattern,
-                    matched_text = matchedText,
-                    severity = severity,
-                    source = source,
-                    line_number = lineNum,
-                    line_content = line,
-                    position = { start = matchStart, finish = matchEnd },
-                    timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-                }
-                matches[#matches + 1] = match
-                self.stats.total_matches = self.stats.total_matches + 1
-                self.stats.by_severity[severity] = (self.stats.by_severity[severity] or 0) + 1
-
-                if self.logger then
-                    self.logger:warn("FILTER", string.format(
-                        "Padrão suspeito encontrado: '%s' em %s (linha %d) [%s]",
-                        matchedText, source, lineNum, severity
-                    ), match)
-                end
-            end
-            startPos = matchEnd + 1
-        end
-    end
-
-    if #matches > 0 then
-        self.matchHistory[#self.matchHistory + 1] = {
-            source = source,
-            matches = matches,
-            scan_time = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+    if #dets > 0 then
+        self.stats.detected = self.stats.detected + #dets
+        self.detections[#self.detections + 1] = {
+            source = source, detections = dets, timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
         }
+        if self.logger then
+            self.logger:warn("OBFUSC", string.format(
+                "🧠 %d técnicas de ofuscação em %s", #dets, source
+            ))
+        end
     end
-    return matches
+    return dets
 end
 
-function Filters:analyzeRemoteName(name, remotePath)
-    local suspiciousNames = self.config.SUSPICIOUS_REMOTE_NAMES or {}
-    for _, pattern in ipairs(suspiciousNames) do
-        if name:match(pattern) then
-            local match = {
-                type = "SUSPICIOUS_REMOTE_NAME",
-                name = name,
-                path = remotePath,
-                pattern = pattern,
-                severity = "MEDIUM",
-                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-            }
-            if self.logger then
-                self.logger:info("FILTER", string.format(
-                    "Remote com nome suspeito: '%s' em %s", name, remotePath
-                ), match)
-            end
-            return match
-        end
-    end
-    return nil
+function _OD:_addDet(dets, tech, sev, desc, extra)
+    local d = { technique = tech, severity = sev, description = desc }
+    if extra then for k, v in pairs(extra) do d[k] = v end end
+    dets[#dets + 1] = d
+    self.stats.by_technique[tech] = (self.stats.by_technique[tech] or 0) + 1
 end
 
-function Filters:isMonitoredService(serviceName)
-    for _, svc in ipairs(self.config.MONITORED_SERVICES or {}) do
-        if svc == serviceName then return true end
-    end
-    return false
-end
-
-function Filters:analyzeRemoteArgs(args, remoteName)
-    local alerts = {}
-    if type(args) ~= "table" then return alerts end
-
-    for i, arg in ipairs(args) do
-        local argType = type(arg)
-        if argType == "string" and #arg > 10000 then
-            alerts[#alerts + 1] = {
-                type = "OVERSIZED_ARGUMENT",
-                remote = remoteName,
-                arg_index = i,
-                arg_size = #arg,
-                severity = "HIGH",
-                description = "Argumento string excessivamente grande (possível buffer overflow)",
-            }
-        end
-        if argType == "string" then
-            local codeIndicators = { "function%(", "local%s+", "require%(", "loadstring%(" }
-            for _, indicator in ipairs(codeIndicators) do
-                if arg:find(indicator) then
-                    alerts[#alerts + 1] = {
-                        type = "CODE_IN_ARGUMENT",
-                        remote = remoteName,
-                        arg_index = i,
-                        pattern = indicator,
-                        severity = "HIGH",
-                        description = "Código Lua detectado em argumento de Remote",
-                    }
-                    break
-                end
-            end
-        end
-        if argType == "number" and (arg > 2147483647 or arg < -2147483648) then
-            alerts[#alerts + 1] = {
-                type = "INTEGER_OVERFLOW_ATTEMPT",
-                remote = remoteName,
-                arg_index = i,
-                value = arg,
-                severity = "MEDIUM",
-                description = "Valor numérico fora dos limites de int32",
-            }
-        end
-    end
-
-    if #alerts > 0 and self.logger then
-        for _, alert in ipairs(alerts) do
-            self.logger:warn("FILTER", string.format(
-                "Alerta em argumentos de '%s': %s [%s]",
-                remoteName, alert.description, alert.severity
-            ), alert)
-        end
-    end
-    return alerts
-end
-
-function Filters:getStats() return self.stats end
-function Filters:getHistory() return self.matchHistory end
-function Filters:reset()
-    self.matchHistory = {}
-    self.stats = {
-        total_scanned = 0, total_matches = 0,
-        by_severity = { LOW = 0, MEDIUM = 0, HIGH = 0, CRITICAL = 0 },
-        by_category = {},
+function _OD:_concatEvasion(code, source, dets)
+    local splits = {
+        { {"load","string"}, "loadstring" },
+        { {"Http","Get"}, "HttpGet" },
+        { {"Http","Post"}, "HttpPost" },
+        { {"get","raw","metatable"}, "getrawmetatable" },
+        { {"set","raw","metatable"}, "setrawmetatable" },
+        { {"hook","function"}, "hookfunction" },
+        { {"get","genv"}, "getgenv" },
+        { {"fire","server"}, "fireserver" },
     }
-end
-
--- ================================================================
--- MÓDULO: Scanner
--- ================================================================
-local Scanner = {}
-Scanner.__index = Scanner
-
-function Scanner.new(config, logger, filters)
-    local self = setmetatable({}, Scanner)
-    self.config = config or {}
-    self.logger = logger
-    self.filters = filters
-    self.results = {
-        remote_events = {},
-        remote_functions = {},
-        bindable_events = {},
-        scripts = {},
-        http_requests = {},
-        datastore_access = {},
-        suspicious_items = {},
-        vulnerabilities = {},
-    }
-    self.scanCount = 0
-    self.isScanning = false
-    return self
-end
-
-function Scanner:scanInstance(instance, depth)
-    depth = depth or 0
-    if depth > (self.config.MAX_DEPTH or 50) then return end
-    if not instance then return end
-
-    local name = instance.Name or "unnamed"
-    local className = instance.ClassName or "unknown"
-    local fullPath = ""
-    pcall(function() fullPath = instance:GetFullName() end)
-    if fullPath == "" then fullPath = name end
-
-    if className == "RemoteEvent" and self.config.SCAN_REMOTE_EVENTS then
-        self:_registerRemote(instance, fullPath, "RemoteEvent", self.results.remote_events)
-    end
-    if className == "RemoteFunction" and self.config.SCAN_REMOTE_FUNCTIONS then
-        self:_registerRemote(instance, fullPath, "RemoteFunction", self.results.remote_functions)
-    end
-    if className == "BindableEvent" and self.config.SCAN_BINDABLE_EVENTS then
-        local entry = {
-            name = name, path = fullPath, class = "BindableEvent",
-            scan_time = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-        }
-        self.results.bindable_events[#self.results.bindable_events + 1] = entry
-        if self.logger then self.logger:debug("SCANNER", "BindableEvent: " .. fullPath) end
-    end
-
-    if className == "LocalScript" or className == "Script" or className == "ModuleScript" then
-        self:_scanScript(instance, fullPath, className)
-    end
-
-    -- Filhos
-    local children = {}
-    pcall(function() children = instance:GetChildren() end)
-    if type(children) ~= "table" then children = instance.children or {} end
-    for _, child in ipairs(children) do
-        self:scanInstance(child, depth + 1)
-    end
-end
-
-function Scanner:_registerRemote(instance, path, class, resultTable)
-    local entry = {
-        name = instance.Name,
-        path = path,
-        class = class,
-        scan_time = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-        parent = "",
-    }
-    pcall(function() entry.parent = instance.Parent and instance.Parent.Name or "nil" end)
-    resultTable[#resultTable + 1] = entry
-
-    if self.filters then
-        local nameMatch = self.filters:analyzeRemoteName(instance.Name, path)
-        if nameMatch then
-            entry.suspicious = true
-            entry.filter_match = nameMatch
-            self.results.suspicious_items[#self.results.suspicious_items + 1] = {
-                type = "SUSPICIOUS_" .. class:upper(),
-                details = entry,
-            }
+    for _, entry in ipairs(splits) do
+        local parts, keyword = entry[1], entry[2]
+        -- Procurar: "part1" .. "part2"
+        local pat = ""
+        for i, p in ipairs(parts) do
+            if i > 1 then pat = pat .. "[\"']%s*%.%.%s*[\"']" end
+            pat = pat .. p
+        end
+        if code:find(pat) then
+            self:_addDet(dets, "STRING_CONCAT_EVASION", "HIGH",
+                string.format("Evasão via concatenação para '%s'", keyword),
+                { evaded_keyword = keyword })
         end
     end
-    if self.logger then
-        self.logger:info("SCANNER", class .. " encontrado: " .. path, entry)
+    -- Concatenações excessivas numa linha
+    for line in code:gmatch("[^\n]+") do
+        local cnt = 0
+        for _ in line:gmatch("%.%.") do cnt = cnt + 1 end
+        if cnt >= 8 then
+            self:_addDet(dets, "EXCESSIVE_CONCAT", "MEDIUM",
+                string.format("Linha com %d concatenações", cnt), { count = cnt })
+            break
+        end
     end
 end
 
-function Scanner:_scanScript(instance, path, scriptType)
-    local source = nil
-    pcall(function() source = instance.Source end)
-    if not source then
-        pcall(function()
-            if decompile then source = decompile(instance) end
-        end)
+function _OD:_stringEncoding(code, source, dets)
+    local hx = 0
+    for _ in code:gmatch("\\x%x%x") do hx = hx + 1 end
+    if hx >= 10 then
+        self:_addDet(dets, "HEX_ENCODING", "HIGH",
+            string.format("%d sequências hex", hx), { count = hx })
     end
+    local oct = 0
+    for _ in code:gmatch("\\%d%d%d") do oct = oct + 1 end
+    if oct >= 10 then
+        self:_addDet(dets, "OCTAL_ENCODING", "HIGH",
+            string.format("%d sequências octal", oct), { count = oct })
+    end
+end
 
-    local entry = {
-        name = instance.Name, path = path, class = scriptType,
-        has_source = source ~= nil,
-        source_length = source and #source or 0,
-        scan_time = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+function _OD:_base64Detection(code, source, dets)
+    for str in code:gmatch('"([^"]+)"') do
+        if #str > 200 and str:match("^[A-Za-z0-9+/=]+$") then
+            self:_addDet(dets, "BASE64_PAYLOAD", "CRITICAL",
+                string.format("String Base64 de %d chars detectada", #str),
+                { length = #str })
+            break
+        end
+    end
+    for str in code:gmatch("'([^']+)'") do
+        if #str > 200 and str:match("^[A-Za-z0-9+/=]+$") then
+            self:_addDet(dets, "BASE64_PAYLOAD", "CRITICAL",
+                string.format("String Base64 de %d chars detectada", #str),
+                { length = #str })
+            break
+        end
+    end
+end
+
+function _OD:_minification(code, source, dets)
+    local lines = {}
+    for line in code:gmatch("[^\n]+") do lines[#lines+1] = line end
+    if #lines == 0 then return end
+    local longLines = 0
+    for _, l in ipairs(lines) do if #l > 500 then longLines = longLines + 1 end end
+    local avg = #code / math.max(#lines, 1)
+    if longLines >= 3 or (avg > 200 and #lines < 15 and #code > 3000) then
+        self:_addDet(dets, "MINIFICATION", "MEDIUM",
+            string.format("Código minificado (%d linhas, avg %d chars)", #lines, math.floor(avg)),
+            { total_lines = #lines, avg_length = math.floor(avg) })
+    end
+    -- Variáveis de uma letra
+    local sv = 0
+    for _ in code:gmatch("local%s+[a-z]%s*=") do sv = sv + 1 end
+    if sv >= 20 then
+        self:_addDet(dets, "MINIFIED_VARS", "LOW",
+            string.format("%d variáveis de uma letra", sv), { count = sv })
+    end
+end
+
+function _OD:_knownObfuscators(code, source, dets)
+    local obfs = {
+        { "IIlIIlIIlIlI", "Luraph" }, { "LPH_", "Luraph" },
+        { "PSU_", "PSU" }, { "Moonsec", "Moonsec" },
+        { "IllIllIllI", "Generic IL" }, { "ILIIILIIIL", "IronBrew" },
+        { "xor_key", "XOR Obfuscator" }, { "Bytecode", "Bytecode Obf" },
     }
-    pcall(function() entry.enabled = instance.Enabled ~= false end)
+    for _, o in ipairs(obfs) do
+        if code:find(o[1], 1, true) then
+            self:_addDet(dets, "KNOWN_OBFUSCATOR", "CRITICAL",
+                string.format("Ofuscador detectado: %s", o[2]),
+                { obfuscator = o[2], marker = o[1] })
+        end
+    end
+end
 
-    if source and self.filters then
-        local matches = self.filters:analyzeCode(source, path)
-        if #matches > 0 then
-            entry.suspicious = true
-            entry.filter_matches = matches
-            entry.match_count = #matches
-            for _, match in ipairs(matches) do
-                self.results.suspicious_items[#self.results.suspicious_items + 1] = {
-                    type = "SUSPICIOUS_CODE",
-                    script_path = path,
-                    details = match,
-                }
-            end
-            if self.logger then
-                self.logger:warn("SCANNER", string.format(
-                    "Script com %d padrões suspeitos: %s", #matches, path
-                ))
+function _OD:_stringCharConstruction(code, source, dets)
+    local cnt = 0
+    for _ in code:gmatch("string%.char") do cnt = cnt + 1 end
+    if cnt >= 5 then
+        self:_addDet(dets, "STRING_CHAR_BUILD", "HIGH",
+            string.format("%d usos de string.char - payload char-by-char", cnt), { count = cnt })
+    end
+end
+
+function _OD:_tableConcat(code, source, dets)
+    local cnt = 0
+    for _ in code:gmatch("table%.concat") do cnt = cnt + 1 end
+    if cnt >= 3 then
+        self:_addDet(dets, "TABLE_CONCAT_BUILD", "MEDIUM",
+            string.format("%d usos de table.concat", cnt), { count = cnt })
+    end
+end
+
+function _OD:_antiDecompile(code, source, dets)
+    local aps = {
+        { "string%.dump", "Bytecode dumping" },
+        { "setfenv.*0", "Environment level 0" },
+        { "coroutine%.wrap.*coroutine%.yield", "Coroutine confusion" },
+    }
+    for _, ap in ipairs(aps) do
+        if code:find(ap[1]) then
+            self:_addDet(dets, "ANTI_DECOMPILE", "HIGH",
+                "Anti-decompile: "..ap[2], { method = ap[2] })
+        end
+    end
+end
+
+function _OD:_highEntropy(code, source, dets)
+    for str in code:gmatch('"([^"]+)"') do
+        if #str >= 100 then
+            local freq = {}
+            for i = 1, #str do freq[str:sub(i,i)] = true end
+            local uniq = 0
+            for _ in pairs(freq) do uniq = uniq + 1 end
+            if uniq > 50 and (uniq / #str) > 0.3 then
+                self:_addDet(dets, "HIGH_ENTROPY", "MEDIUM",
+                    string.format("String alta entropia (%d chars, %d únicos)", #str, uniq),
+                    { length = #str, unique = uniq })
+                break
             end
         end
     end
-    self.results.scripts[#self.results.scripts + 1] = entry
 end
 
-function Scanner:scanServices(gameRef)
-    if not gameRef then
-        if self.logger then self.logger:error("SCANNER", "Objeto 'game' não disponível") end
-        return
+function _OD:_variableObfuscation(code, source, dets)
+    -- Detectar nomes de variáveis com padrões I/l misturados
+    local ilCount = 0
+    for name in code:gmatch("local%s+([IlO0]+)%s*=") do
+        if #name >= 4 then ilCount = ilCount + 1 end
     end
-    self.isScanning = true
-    self.scanCount = self.scanCount + 1
-    if self.logger then
-        self.logger:info("SCANNER", string.format("Iniciando scan #%d dos serviços", self.scanCount))
-    end
-
-    local services = {
-        "ReplicatedStorage", "ReplicatedFirst", "ServerScriptService", "ServerStorage",
-        "Workspace", "Players", "Lighting", "StarterGui", "StarterPack",
-        "StarterPlayer", "Chat", "SoundService", "Teams",
-    }
-    for _, svcName in ipairs(services) do
-        local ok, svc = pcall(function() return gameRef:GetService(svcName) end)
-        if ok and svc then
-            if self.logger then self.logger:debug("SCANNER", "Escaneando: " .. svcName) end
-            self:scanInstance(svc, 0)
-        end
-    end
-    self.isScanning = false
-    if self.logger then
-        self.logger:info("SCANNER", "Scan de serviços concluído", self:getSummary())
+    if ilCount >= 3 then
+        self:_addDet(dets, "IL_VAR_OBFUSCATION", "HIGH",
+            string.format("%d variáveis com nomes I/l ofuscados", ilCount),
+            { count = ilCount })
     end
 end
 
-function Scanner:monitorRemote(remote, callback)
-    if not remote then return nil end
-    local connection
-    pcall(function()
-        if remote.OnClientEvent then
-            connection = remote.OnClientEvent:Connect(function(...)
-                local args = { ... }
-                local entry = {
-                    remote_name = remote.Name,
-                    args = args, arg_count = #args,
-                    timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-                }
-                pcall(function() entry.remote_path = remote:GetFullName() end)
-                if self.filters then
-                    local alerts = self.filters:analyzeRemoteArgs(args, remote.Name)
-                    if #alerts > 0 then entry.alerts = alerts end
-                end
-                if self.logger then
-                    self.logger:info("MONITOR", string.format(
-                        "Remote interceptado: %s (%d args)", remote.Name, #args
-                    ), entry)
-                end
-                if callback then callback(entry) end
-            end)
-        end
-    end)
-    return connection
-end
-
-function Scanner:getSummary()
-    return {
-        scan_count = self.scanCount,
-        remote_events = #self.results.remote_events,
-        remote_functions = #self.results.remote_functions,
-        bindable_events = #self.results.bindable_events,
-        scripts_analyzed = #self.results.scripts,
-        http_requests_logged = #self.results.http_requests,
-        suspicious_items = #self.results.suspicious_items,
-        vulnerabilities = #self.results.vulnerabilities,
-    }
-end
-
-function Scanner:exportResults()
-    local report = {
-        scanner_version = Config.VERSION,
-        scan_count = self.scanCount,
-        export_time = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-        summary = self:getSummary(),
-        results = self.results,
-    }
-    return JSON.encodePretty(report)
-end
-
-function Scanner:saveResults(filepath)
-    local jsonStr = self:exportResults()
-    local saved = false
-    if writefile then
-        local ok = pcall(function() writefile(filepath, jsonStr) end)
-        if ok then saved = true end
-    end
-    if not saved then
-        local file = io.open(filepath, "w")
-        if file then file:write(jsonStr); file:close(); saved = true end
-    end
-    if saved and self.logger then
-        self.logger:info("SCANNER", "Resultados salvos em: " .. filepath)
-    end
-    return saved
-end
-
-function Scanner:getResults() return self.results end
-
-function Scanner:reset()
-    self.results = {
-        remote_events = {}, remote_functions = {}, bindable_events = {},
-        scripts = {}, http_requests = {}, datastore_access = {},
-        suspicious_items = {}, vulnerabilities = {},
-    }
-    self.scanCount = 0
+function _OD:getStats() return self.stats end
+function _OD:getDetections() return self.detections end
+function _OD:reset()
+    self.detections = {}
+    self.stats = { total = 0, detected = 0, by_technique = {} }
 end
 
 -- ================================================================
--- MÓDULO: Vulnerability Detector
+-- 🌐 MÓDULO: Network Monitor (AVANÇADO)
 -- ================================================================
-local VulnerabilityDetector = {}
-VulnerabilityDetector.__index = VulnerabilityDetector
+local _NM = {}; _NM.__index = _NM
 
-local VULN_DATABASE = {
-    {
-        id = "VULN-RE-001", name = "RemoteEvent sem validação de servidor",
-        category = "REMOTE_ABUSE", severity = "HIGH",
-        description = "RemoteEvent que não valida dados recebidos do cliente pode permitir manipulação de dados.",
-        indicators = { "OnServerEvent", "FireServer" },
-        remediation = "Implementar validação de tipo e limites em todos os dados recebidos via RemoteEvent.",
-    },
-    {
-        id = "VULN-RE-002", name = "RemoteEvent exposto sem rate limiting",
-        category = "REMOTE_ABUSE", severity = "MEDIUM",
-        description = "RemoteEvents sem controle de frequência podem ser explorados para spam ou DoS.",
-        indicators = { "RemoteEvent", "FireServer" },
-        remediation = "Implementar rate limiting no handler do servidor.",
-    },
-    {
-        id = "VULN-CI-001", name = "Uso de loadstring",
-        category = "CODE_INJECTION", severity = "CRITICAL",
-        description = "loadstring permite execução de código arbitrário.",
-        indicators = { "loadstring" },
-        remediation = "Evitar loadstring. Usar módulos pré-compilados.",
-    },
-    {
-        id = "VULN-CI-002", name = "Require dinâmico com ID variável",
-        category = "CODE_INJECTION", severity = "HIGH",
-        description = "Require com IDs dinâmicos pode carregar módulos maliciosos.",
-        indicators = { "require" },
-        remediation = "Usar apenas IDs de módulo estáticos.",
-    },
-    {
-        id = "VULN-DE-001", name = "Requisição HTTP para domínio externo",
-        category = "DATA_EXFILTRATION", severity = "HIGH",
-        description = "Requisições HTTP para domínios não-Roblox podem indicar exfiltração de dados.",
-        indicators = { "HttpGet", "HttpPost", "request", "syn.request", "http_request" },
-        remediation = "Usar whitelist de domínios.",
-    },
-    {
-        id = "VULN-MM-001", name = "Manipulação de metatables",
-        category = "MEMORY_MANIPULATION", severity = "CRITICAL",
-        description = "Modificação de metatables pode alterar o comportamento de objetos do jogo.",
-        indicators = { "getrawmetatable", "setrawmetatable" },
-        remediation = "Proteger metatables com __metatable.",
-    },
-    {
-        id = "VULN-MM-002", name = "Hook de funções",
-        category = "MEMORY_MANIPULATION", severity = "CRITICAL",
-        description = "Hooking permite interceptar e modificar chamadas de função.",
-        indicators = { "hookfunction", "hookmetamethod" },
-        remediation = "Implementar verificação de integridade de funções críticas.",
-    },
-    {
-        id = "VULN-PE-001", name = "Acesso a ambiente global",
-        category = "PRIVILEGE_ESCALATION", severity = "HIGH",
-        description = "Acesso ao ambiente global permite modificar variáveis compartilhadas.",
-        indicators = { "getgenv", "getrenv", "getfenv", "setfenv" },
-        remediation = "Isolar ambientes de execução.",
-    },
-    {
-        id = "VULN-PE-002", name = "Manipulação de upvalues/constantes",
-        category = "PRIVILEGE_ESCALATION", severity = "HIGH",
-        description = "Manipulação de upvalues pode alterar lógica de segurança.",
-        indicators = { "debug.getupvalue", "debug.setupvalue", "debug.getconstant", "debug.setconstant" },
-        remediation = "Evitar dados sensíveis em upvalues.",
-    },
-    {
-        id = "VULN-IV-001", name = "Simulação de input do jogador",
-        category = "INPUT_VALIDATION", severity = "MEDIUM",
-        description = "Simulação de clicks e toques pode contornar verificações.",
-        indicators = { "fireclickdetector", "firetouchinterest", "fireproximityprompt", "firesignal" },
-        remediation = "Validação server-side para todas as interações.",
-    },
-    {
-        id = "VULN-AB-001", name = "Bypass de namecall",
-        category = "AUTHENTICATION_BYPASS", severity = "HIGH",
-        description = "Manipulação de namecall permite alterar métodos chamados.",
-        indicators = { "getnamecallmethod", "setnamecallmethod" },
-        remediation = "Verificações server-side independentes do método de chamada.",
-    },
+-- Domínios de risco conhecidos
+local RISK_DOMAINS = {
+    ["pastebin.com"] = { risk = 7, reason = "Hosting de payloads" },
+    ["raw.githubusercontent.com"] = { risk = 5, reason = "Raw script hosting" },
+    ["hastebin.com"] = { risk = 6, reason = "Paste service" },
+    ["paste.ee"] = { risk = 6, reason = "Paste service" },
+    ["rentry.co"] = { risk = 5, reason = "Paste service" },
+    ["discord.com"] = { risk = 4, reason = "Webhook exfiltration" },
+    ["discordapp.com"] = { risk = 4, reason = "Webhook exfiltration" },
+    ["discord.gg"] = { risk = 3, reason = "Invite link" },
+    ["cdn.discordapp.com"] = { risk = 5, reason = "CDN payload hosting" },
+    ["repl.it"] = { risk = 5, reason = "Code hosting" },
+    ["glitch.me"] = { risk = 5, reason = "App hosting" },
+    ["herokuapp.com"] = { risk = 5, reason = "App hosting" },
+    ["ngrok.io"] = { risk = 8, reason = "Tunnel (C2 potencial)" },
+    ["webhook.site"] = { risk = 7, reason = "Webhook testing/exfil" },
+    ["requestbin.com"] = { risk = 7, reason = "Request logging" },
+    ["iplogger.org"] = { risk = 9, reason = "IP grabber" },
+    ["grabify.link"] = { risk = 9, reason = "IP grabber" },
 }
 
-function VulnerabilityDetector.new(config, logger)
-    local self = setmetatable({}, VulnerabilityDetector)
-    self.config = config or {}
+-- Domínios seguros (whitelist)
+local SAFE_DOMAINS = {
+    "roblox.com", "rbxcdn.com", "robloxcdn.com", "rbx.com",
+}
+
+function _NM.new(logger)
+    local self = setmetatable({}, _NM)
     self.logger = logger
-    self.detectedVulnerabilities = {}
+    self.requests = {}
+    self.blocked = {}
+    self.hooks = {}
     self.stats = {
-        total_detected = 0,
-        by_severity = { LOW = 0, MEDIUM = 0, HIGH = 0, CRITICAL = 0 },
-        by_category = {},
+        total = 0, suspicious = 0, blocked = 0,
+        by_method = {}, by_domain = {},
     }
+    -- Detecção de comportamento
+    self.domainTimestamps = {} -- timestamps por domínio para rate detection
+    self.burstThreshold = 10  -- requests em 5 segundos = burst
     return self
 end
 
-function VulnerabilityDetector:_isDuplicate(vuln)
-    for _, existing in ipairs(self.detectedVulnerabilities) do
-        if existing.vuln_id == vuln.vuln_id
-            and existing.source == vuln.source
-            and existing.line_number == vuln.line_number then
+--- Parser de URL completo
+--- @param url string URL
+--- @return table Componentes parsed
+function _NM.parseURL(url)
+    if type(url) ~= "string" then return { raw = tostring(url) } end
+    local result = { raw = url }
+
+    -- Protocolo
+    result.protocol = url:match("^(https?)://") or "unknown"
+
+    -- Domínio e porta
+    local hostPort = url:match("^https?://([^/]+)") or url:match("^([^/]+)")
+    if hostPort then
+        result.host = hostPort:match("^([^:]+)")
+        result.port = tonumber(hostPort:match(":(%d+)$"))
+    end
+
+    -- Path
+    result.path = url:match("^https?://[^/]+(/.-)%?") or url:match("^https?://[^/]+(/[^?#]*)") or "/"
+
+    -- Query string
+    local qs = url:match("%?([^#]+)")
+    if qs then
+        result.query_string = qs
+        result.query = {}
+        for k, v in qs:gmatch("([^&=]+)=([^&]*)") do
+            result.query[k] = v
+        end
+    end
+
+    -- Fragment
+    result.fragment = url:match("#(.+)$")
+
+    -- Extrair domínio base (sem subdomínios)
+    if result.host then
+        local parts = {}
+        for part in result.host:gmatch("[^.]+") do parts[#parts + 1] = part end
+        if #parts >= 2 then
+            result.base_domain = parts[#parts - 1] .. "." .. parts[#parts]
+        else
+            result.base_domain = result.host
+        end
+    end
+
+    return result
+end
+
+--- Verifica se domínio é seguro
+function _NM:isSafe(domain)
+    if not domain then return false end
+    domain = domain:lower()
+    for _, safe in ipairs(SAFE_DOMAINS) do
+        if domain == safe or domain:match("%." .. safe:gsub("%.", "%%.") .. "$") then
             return true
         end
     end
     return false
 end
 
-function VulnerabilityDetector:analyzeFilterResults(filterMatches, source)
-    local vulnerabilities = {}
-    for _, match in ipairs(filterMatches) do
-        for _, vulnDef in ipairs(VULN_DATABASE) do
-            for _, indicator in ipairs(vulnDef.indicators) do
-                if match.matched_text and match.matched_text:find(indicator, 1, true) then
-                    local vuln = {
-                        vuln_id = vulnDef.id,
-                        name = vulnDef.name,
-                        category = vulnDef.category,
-                        severity = vulnDef.severity,
-                        description = vulnDef.description,
-                        remediation = vulnDef.remediation,
-                        source = source,
-                        matched_text = match.matched_text,
-                        line_number = match.line_number,
-                        line_content = match.line_content,
-                        detection_time = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-                    }
-                    if not self:_isDuplicate(vuln) then
-                        vulnerabilities[#vulnerabilities + 1] = vuln
-                        self.detectedVulnerabilities[#self.detectedVulnerabilities + 1] = vuln
-                        self.stats.total_detected = self.stats.total_detected + 1
-                        self.stats.by_severity[vulnDef.severity] = (self.stats.by_severity[vulnDef.severity] or 0) + 1
-                        self.stats.by_category[vulnDef.category] = (self.stats.by_category[vulnDef.category] or 0) + 1
-                        if self.logger then
-                            self.logger:warn("VULN", string.format(
-                                "[%s] %s em %s (linha %s) - %s",
-                                vuln.vuln_id, vuln.name, source,
-                                tostring(vuln.line_number), vuln.severity
-                            ), vuln)
-                        end
-                    end
-                    break
-                end
+--- Obtém risco de um domínio
+function _NM:getDomainRisk(domain)
+    if not domain then return { risk = 5, reason = "Domínio desconhecido" } end
+    domain = domain:lower()
+    -- Checar exato
+    if RISK_DOMAINS[domain] then return RISK_DOMAINS[domain] end
+    -- Checar base domain
+    local parts = {}
+    for p in domain:gmatch("[^.]+") do parts[#parts+1] = p end
+    if #parts >= 2 then
+        local base = parts[#parts-1].."."..parts[#parts]
+        if RISK_DOMAINS[base] then return RISK_DOMAINS[base] end
+    end
+    -- Whitelist
+    if self:isSafe(domain) then return { risk = 0, reason = "Domínio confiável" } end
+    return { risk = 3, reason = "Domínio não catalogado" }
+end
+
+--- Detecta burst de requests (comportamento suspeito)
+function _NM:_detectBurst(domain)
+    local now = os.time()
+    if not self.domainTimestamps[domain] then
+        self.domainTimestamps[domain] = {}
+    end
+    local ts = self.domainTimestamps[domain]
+    ts[#ts + 1] = now
+    -- Limpar timestamps antigos (> 10s)
+    local recent = {}
+    for _, t in ipairs(ts) do
+        if now - t <= 10 then recent[#recent + 1] = t end
+    end
+    self.domainTimestamps[domain] = recent
+    return #recent >= self.burstThreshold
+end
+
+--- Registra uma requisição HTTP
+function _NM:logRequest(method, url, headers, body)
+    local parsed = _NM.parseURL(url)
+    local domain = parsed.host
+    local isSafe = self:isSafe(domain)
+    local domainRisk = self:getDomainRisk(domain)
+    local isBurst = self:_detectBurst(domain or "unknown")
+
+    local entry = {
+        id = #self.requests + 1,
+        method = method or "UNKNOWN",
+        url = url,
+        parsed = parsed,
+        domain = domain,
+        domain_risk = domainRisk,
+        is_safe = isSafe,
+        is_suspicious = not isSafe or domainRisk.risk >= 5,
+        is_burst = isBurst,
+        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+        body_size = (type(body) == "string") and #body or 0,
+    }
+
+    self.requests[#self.requests + 1] = entry
+    self.stats.total = self.stats.total + 1
+    self.stats.by_method[method] = (self.stats.by_method[method] or 0) + 1
+    self.stats.by_domain[domain or "unknown"] = (self.stats.by_domain[domain or "unknown"] or 0) + 1
+
+    if entry.is_suspicious then
+        self.stats.suspicious = self.stats.suspicious + 1
+        self.blocked[#self.blocked + 1] = entry
+    end
+
+    if isBurst then
+        if self.logger then
+            self.logger:critical("NETWORK", string.format(
+                "⚡ BURST detectado: %d requests para %s em 10s",
+                #(self.domainTimestamps[domain or "unknown"] or {}), domain or "unknown"
+            ), entry)
+        end
+    elseif entry.is_suspicious and self.logger then
+        self.logger:warn("NETWORK", string.format(
+            "🌐 Suspeito: %s %s [risco: %d - %s]",
+            method, url, domainRisk.risk, domainRisk.reason
+        ), entry)
+    end
+
+    return entry
+end
+
+--- Instala hooks de rede
+function _NM:installHooks()
+    if self.logger then self.logger:info("NETWORK", "Instalando hooks de rede") end
+    local ref = self
+
+    pcall(function()
+        if hookfunction and game and game.HttpGet then
+            local orig = hookfunction(game.HttpGet, function(g, url, ...)
+                ref:logRequest("GET", url)
+                return orig(g, url, ...)
+            end)
+            ref.hooks.httpGet = orig
+        end
+    end)
+    pcall(function()
+        if hookfunction and game and game.HttpPost then
+            local orig = hookfunction(game.HttpPost, function(g, url, body, ...)
+                ref:logRequest("POST", url, nil, body)
+                return orig(g, url, body, ...)
+            end)
+            ref.hooks.httpPost = orig
+        end
+    end)
+    pcall(function()
+        local fn = (syn and syn.request) or http_request or request
+        if hookfunction and fn then
+            local orig = hookfunction(fn, function(opts, ...)
+                local m = opts and opts.Method or "GET"
+                local u = opts and opts.Url or "unknown"
+                local b = opts and opts.Body
+                ref:logRequest(m, u, nil, b)
+                return orig(opts, ...)
+            end)
+            ref.hooks.request = orig
+        end
+    end)
+end
+
+--- Análise de tráfego
+function _NM:analyzeTraffic()
+    local alerts = {}
+    for domain, count in pairs(self.stats.by_domain) do
+        local risk = self:getDomainRisk(domain)
+        if risk.risk >= 5 then
+            alerts[#alerts + 1] = {
+                type = "RISKY_DOMAIN", domain = domain,
+                risk_score = risk.risk, reason = risk.reason,
+                request_count = count, severity = risk.risk >= 7 and "HIGH" or "MEDIUM",
+            }
+        end
+    end
+    if self.stats.total > 50 then
+        alerts[#alerts + 1] = {
+            type = "HIGH_VOLUME", total = self.stats.total,
+            severity = "MEDIUM",
+        }
+    end
+    return alerts
+end
+
+function _NM:getStats() return self.stats end
+function _NM:getRequests() return self.requests end
+function _NM:exportJSON() return _J.pretty({
+    stats = self.stats, alerts = self:analyzeTraffic(),
+    requests = self.requests, blocked = self.blocked,
+}) end
+function _NM:reset()
+    self.requests = {}; self.blocked = {}; self.domainTimestamps = {}
+    self.stats = { total=0, suspicious=0, blocked=0, by_method={}, by_domain={} }
+end
+
+-- ================================================================
+-- 🧬 MÓDULO: Environment Fingerprinter
+-- ================================================================
+local _EF = {}; _EF.__index = _EF
+
+function _EF.new(logger)
+    local self = setmetatable({}, _EF)
+    self.logger = logger
+    self.result = {}
+    return self
+end
+
+function _EF:scan()
+    if self.logger then self.logger:info("ENV", "🧬 Fingerprinting ambiente") end
+
+    self.result = {
+        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+        executor = self:_detectExecutor(),
+        lua = { version = _VERSION or "?", jit = jit and jit.version or nil },
+        capabilities = self:_scanCaps(),
+        risk = {},
+    }
+    self.result.risk = self:_assess()
+
+    if self.logger then
+        self.logger:info("ENV", string.format(
+            "🧬 Executor: %s | %d caps | Risco: %s",
+            self.result.executor.name,
+            self.result.capabilities.total,
+            self.result.risk.level
+        ))
+    end
+    return self.result
+end
+
+function _EF:_detectExecutor()
+    local ex = { name = "Unknown", version = "?" }
+    -- Tentar identificar
+    local checks = {
+        function()
+            if identifyexecutor then ex.name = identifyexecutor(); return true end
+        end,
+        function()
+            if getexecutorname then ex.name = getexecutorname(); return true end
+        end,
+        function()
+            if syn and syn.protect_gui then ex.name = "Synapse X"; return true end
+        end,
+        function()
+            if wave or Wave then ex.name = "Wave"; return true end
+        end,
+        function()
+            if KRNL_LOADED then ex.name = "KRNL"; return true end
+        end,
+        function()
+            if fluxus or FLUXUS_FOLDER then ex.name = "Fluxus"; return true end
+        end,
+        function()
+            if Electron then ex.name = "Electron"; return true end
+        end,
+        function()
+            if SW_LOADED then ex.name = "Script-Ware"; return true end
+        end,
+    }
+    for _, check in ipairs(checks) do
+        local ok = pcall(check)
+        if ok and ex.name ~= "Unknown" then break end
+    end
+    -- Plataforma
+    pcall(function()
+        if game and game.PlaceId then
+            ex.platform = "Roblox"
+            ex.place_id = game.PlaceId
+            ex.game_id = game.GameId
+        end
+    end)
+    if ex.name == "Unknown" and not pcall(function() return game end) then
+        ex.name = "Lua Standalone"
+        ex.platform = "Desktop"
+    end
+    return ex
+end
+
+function _EF:_scanCaps()
+    local c = { total = 0, fs = {}, hook = {}, dbg = {}, net = {}, exec = {}, misc = {} }
+    local function chk(name, cat)
+        local exists = false
+        pcall(function()
+            if name:find("%.") then
+                local a, b = name:match("^(.+)%.(.+)$")
+                exists = type(_G[a][b]) == "function"
+            else
+                exists = type(_G[name]) == "function"
+            end
+        end)
+        if exists then c[cat][#c[cat]+1] = name; c.total = c.total + 1 end
+    end
+    -- Filesystem
+    for _, f in ipairs({"readfile","writefile","appendfile","listfiles","isfile","isfolder","makefolder","delfile","delfolder"}) do
+        chk(f, "fs")
+    end
+    -- Hooking
+    for _, f in ipairs({"hookfunction","hookmetamethod","newcclosure","replaceclosure","clonefunction","getnamecallmethod","setnamecallmethod"}) do
+        chk(f, "hook")
+    end
+    -- Debug
+    for _, f in ipairs({"debug.getupvalue","debug.setupvalue","debug.getinfo","debug.getconstant","debug.setconstant","debug.getregistry"}) do
+        chk(f, "dbg")
+    end
+    -- Network
+    for _, f in ipairs({"request","http_request"}) do chk(f, "net") end
+    -- Execution
+    for _, f in ipairs({"loadstring","getgenv","getrenv","getfenv","setfenv","getrawmetatable","setrawmetatable","setreadonly","decompile","saveinstance"}) do
+        chk(f, "exec")
+    end
+    -- Misc
+    for _, f in ipairs({"fireclickdetector","firetouchinterest","fireproximityprompt","firesignal","getconnections","getinstances","getnilinstances","getscripts","getrunningscripts","getloadedmodules","getreg","getgc","getthreadidentity","setthreadidentity"}) do
+        chk(f, "misc")
+    end
+    return c
+end
+
+function _EF:_assess()
+    local score = 0
+    local c = self.result.capabilities or {}
+    if c.hook and #c.hook > 0 then score = score + #c.hook * 5 end
+    if c.dbg and #c.dbg > 0 then score = score + #c.dbg * 4 end
+    if c.exec and #c.exec > 3 then score = score + #c.exec * 5 end
+    if c.fs and #c.fs > 0 then score = score + #c.fs * 2 end
+    if c.misc and #c.misc > 3 then score = score + #c.misc * 2 end
+    local level = score >= 80 and "CRITICAL" or (score >= 50 and "HIGH" or (score >= 25 and "MEDIUM" or "LOW"))
+    return { level = level, score = score }
+end
+
+function _EF:getResult() return self.result end
+
+-- ================================================================
+-- 🕵️ MÓDULO: Anti-Detection
+-- ================================================================
+local _AD = {}; _AD.__index = _AD
+
+function _AD.new(logger)
+    local self = setmetatable({}, _AD)
+    self.logger = logger
+    self.active = false
+    return self
+end
+
+function _AD:enable()
+    -- 1. Delay aleatório na execução
+    pcall(function()
+        if task and task.wait then
+            task.wait(math.random() * 0.5)
+        elseif wait then
+            wait(math.random() * 0.3)
+        end
+    end)
+
+    -- 2. Não expor nada em _G diretamente (já feito: tudo local)
+    -- 3. Evitar nomes óbvios (já feito: nomes _J, _L, _RS etc)
+
+    self.active = true
+    if self.logger then
+        self.logger:debug("STEALTH", "Proteções anti-detecção ativas")
+    end
+end
+
+--- Verificação de integridade
+function _AD:integrityCheck()
+    local checks = {}
+    -- Verificar se print não foi hookado
+    pcall(function()
+        if iscclosure then
+            checks.print_original = iscclosure(print)
+        end
+    end)
+    -- Verificar tempo (anti-speedhack)
+    pcall(function()
+        local t = os.time()
+        checks.time_valid = type(t) == "number" and t > 1600000000
+    end)
+    return checks
+end
+
+-- ================================================================
+-- 📡 MÓDULO: Discord Webhook
+-- ================================================================
+local _DW = {}; _DW.__index = _DW
+
+function _DW.new(url, logger)
+    local self = setmetatable({}, _DW)
+    self.url = url
+    self.logger = logger
+    self.enabled = url ~= nil and url ~= ""
+    self.sent = 0
+    return self
+end
+
+function _DW:setUrl(url) self.url = url; self.enabled = url ~= nil and url ~= "" end
+
+function _DW:_send(payload)
+    if not self.enabled then return false end
+    local body = _J.encode(payload)
+    local ok = false
+    -- Tentar múltiplos métodos de request
+    pcall(function()
+        if syn and syn.request then
+            syn.request({ Url=self.url, Method="POST", Headers={["Content-Type"]="application/json"}, Body=body })
+            ok = true
+        end
+    end)
+    if not ok then pcall(function()
+        if http_request then
+            http_request({ Url=self.url, Method="POST", Headers={["Content-Type"]="application/json"}, Body=body })
+            ok = true
+        end
+    end) end
+    if not ok then pcall(function()
+        if request then
+            request({ Url=self.url, Method="POST", Headers={["Content-Type"]="application/json"}, Body=body })
+            ok = true
+        end
+    end) end
+    if not ok then pcall(function()
+        if game then
+            game:GetService("HttpService"):PostAsync(self.url, body)
+            ok = true
+        end
+    end) end
+    if ok then self.sent = self.sent + 1 end
+    return ok
+end
+
+function _DW:sendAlert(vuln)
+    if not self.enabled then return false end
+    local colors = { CRITICAL=15158332, HIGH=15105570, MEDIUM=16776960, LOW=3447003 }
+    return self:_send({ embeds = {{ title="🔒 Vulnerabilidade", color=colors[vuln.severity] or 8421504, fields={
+        {name="ID",value=vuln.vuln_id or "N/A",inline=true},
+        {name="Severidade",value=vuln.severity or "?",inline=true},
+        {name="Score",value=tostring(vuln.score or "?"),inline=true},
+        {name="Nome",value=vuln.name or "N/A",inline=false},
+        {name="Origem",value=vuln.source or "?",inline=true},
+        {name="Descrição",value=(vuln.description or ""):sub(1,200),inline=false},
+    }, timestamp=os.date("!%Y-%m-%dT%H:%M:%SZ"), footer={text="Scanning-Lua v2.0.0"} }} })
+end
+
+function _DW:sendSummary(summary)
+    if not self.enabled then return false end
+    local vs = summary.vulnerability_stats or {}
+    local sev = vs.by_severity or {}
+    local sr = summary.scan_results or {}
+    local emoji = (sev.CRITICAL or 0)>0 and "🔴" or ((sev.HIGH or 0)>0 and "🟠" or ((sev.MEDIUM or 0)>0 and "🟡" or "🟢"))
+    return self:_send({ embeds = {{ title=emoji.." Scan Completo", color=3447003, fields={
+        {name="Scripts",value=tostring(sr.scripts_analyzed or 0),inline=true},
+        {name="Remotes",value=tostring((sr.remote_events or 0)+(sr.remote_functions or 0)),inline=true},
+        {name="Suspeitos",value=tostring(sr.suspicious_items or 0),inline=true},
+        {name="Vulnerabilidades",value=tostring(vs.total_detected or 0),inline=true},
+        {name="CRITICAL",value=tostring(sev.CRITICAL or 0),inline=true},
+        {name="HIGH",value=tostring(sev.HIGH or 0),inline=true},
+        {name="Risk Score",value=tostring(summary.total_risk_score or 0),inline=true},
+    }, timestamp=os.date("!%Y-%m-%dT%H:%M:%SZ"), footer={text="Scanning-Lua v2.0.0"} }} })
+end
+
+-- ================================================================
+-- SCANNER CORE (melhorado)
+-- ================================================================
+local _SC = {}; _SC.__index = _SC
+
+function _SC.new(logger, riskEngine, obfDetector, filters)
+    local self = setmetatable({}, _SC)
+    self.logger = logger
+    self.risk = riskEngine
+    self.obf = obfDetector
+    self.filters = filters -- referência para filtros adicionais
+    self.results = {
+        remote_events = {}, remote_functions = {}, bindable_events = {},
+        scripts = {}, suspicious = {}, vulnerabilities = {},
+    }
+    self.count = 0
+    self.scanning = false
+    self.connections = {}
+    self.maxDepth = 50
+    -- Controle de carga assíncrona
+    self.asyncQueue = {}
+    self.asyncLimit = 5  -- máximo simultâneo
+    self.asyncRunning = 0
+    return self
+end
+
+function _SC:scanInstance(inst, depth)
+    depth = depth or 0
+    if depth > self.maxDepth then return end
+    if not inst then return end
+
+    local name, class, path = "?", "?", "?"
+    pcall(function() name = inst.Name end)
+    pcall(function() class = inst.ClassName end)
+    pcall(function() path = inst:GetFullName() end)
+    if path == "?" then path = name end
+
+    -- RemoteEvent
+    if class == "RemoteEvent" then self:_regRemote(inst, path, "RemoteEvent") end
+    if class == "RemoteFunction" then self:_regRemote(inst, path, "RemoteFunction") end
+    if class == "BindableEvent" then
+        self.results.bindable_events[#self.results.bindable_events+1] = {
+            name=name, path=path, class=class, timestamp=os.date("!%Y-%m-%dT%H:%M:%SZ"),
+        }
+    end
+
+    -- Scripts
+    if class == "LocalScript" or class == "Script" or class == "ModuleScript" then
+        self:_scanScript(inst, path, class)
+    end
+
+    -- Filhos
+    local children = {}
+    pcall(function() children = inst:GetChildren() end)
+    if type(children) ~= "table" then pcall(function() children = inst.children or {} end) end
+    for _, child in ipairs(children or {}) do
+        self:scanInstance(child, depth + 1)
+    end
+end
+
+function _SC:_regRemote(inst, path, class)
+    local entry = {
+        name = inst.Name, path = path, class = class,
+        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"), parent = "",
+    }
+    pcall(function() entry.parent = inst.Parent and inst.Parent.Name or "nil" end)
+
+    local tbl = class == "RemoteEvent" and self.results.remote_events or self.results.remote_functions
+    tbl[#tbl + 1] = entry
+
+    -- Verificar nome suspeito
+    local suspPatterns = {".*Event.*",".*Remote.*",".*Fire.*",".*Send.*",".*Handler.*",".*Callback.*"}
+    for _, p in ipairs(suspPatterns) do
+        if inst.Name:match(p) then
+            entry.suspicious = true
+            self.results.suspicious[#self.results.suspicious+1] = {
+                type = "SUSPICIOUS_"..class:upper(), details = entry,
+            }
+            break
+        end
+    end
+
+    if self.logger then
+        self.logger:debug("SCAN", class..": "..path)
+    end
+end
+
+function _SC:_scanScript(inst, path, class)
+    local source
+    pcall(function() source = inst.Source end)
+    if not source then pcall(function() if decompile then source = decompile(inst) end end) end
+
+    local entry = {
+        name = inst.Name, path = path, class = class,
+        has_source = source ~= nil,
+        source_length = source and #source or 0,
+        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+    }
+    pcall(function() entry.enabled = inst.Enabled ~= false end)
+
+    if source then
+        -- 🔥 Risk Score (contextual!)
+        if self.risk then
+            local analysis = self.risk:analyze(source, path)
+            entry.risk_score = analysis.score
+            entry.risk_level = analysis.level
+            entry.risk_findings = #analysis.findings
+            entry.risk_combos = #analysis.combos
+
+            if analysis.level == "HIGH" or analysis.level == "CRITICAL" then
+                entry.suspicious = true
+                self.results.suspicious[#self.results.suspicious+1] = {
+                    type = "HIGH_RISK_SCRIPT",
+                    script_path = path,
+                    risk = analysis,
+                }
+            end
+        end
+
+        -- 🧠 Obfuscation detection
+        if self.obf then
+            local obfDets = self.obf:analyze(source, path)
+            if #obfDets > 0 then
+                entry.obfuscated = true
+                entry.obfuscation_techniques = #obfDets
+                self.results.suspicious[#self.results.suspicious+1] = {
+                    type = "OBFUSCATED_SCRIPT",
+                    script_path = path,
+                    detections = obfDets,
+                }
             end
         end
     end
-    return vulnerabilities
+
+    self.results.scripts[#self.results.scripts+1] = entry
 end
 
-function VulnerabilityDetector:analyzeScanResults(scanResults)
-    if not scanResults then return end
+function _SC:scanServices(gameRef)
+    if not gameRef then return end
+    self.scanning = true
+    self.count = self.count + 1
     if self.logger then
-        self.logger:info("VULN_DETECTOR", "Iniciando análise de vulnerabilidades")
+        self.logger:info("SCAN", string.format("⚡ Scan #%d iniciado", self.count))
     end
 
-    for _, script in ipairs(scanResults.scripts or {}) do
-        if script.suspicious and script.filter_matches then
-            self:analyzeFilterResults(script.filter_matches, script.path)
+    local svcs = {
+        "ReplicatedStorage","ReplicatedFirst","ServerScriptService","ServerStorage",
+        "Workspace","Players","Lighting","StarterGui","StarterPack",
+        "StarterPlayer","Chat","SoundService","Teams",
+    }
+    for _, s in ipairs(svcs) do
+        local ok, svc = pcall(function() return gameRef:GetService(s) end)
+        if ok and svc then self:scanInstance(svc, 0) end
+    end
+
+    self.scanning = false
+    if self.logger then
+        self.logger:info("SCAN", "⚡ Scan concluído", self:getSummary())
+    end
+end
+
+--- Scan seletivo
+function _SC:scanSelective(gameRef, serviceList)
+    if not gameRef or not serviceList then return end
+    self.scanning = true
+    self.count = self.count + 1
+    for _, s in ipairs(serviceList) do
+        local ok, svc = pcall(function() return gameRef:GetService(s) end)
+        if ok and svc then self:scanInstance(svc, 0) end
+    end
+    self.scanning = false
+end
+
+--- Scan assíncrono com controle de carga
+function _SC:scanAsync(gameRef, callback)
+    local hasTask = pcall(function() return task and task.defer end)
+    if not hasTask then
+        self:scanServices(gameRef)
+        if callback then callback(self:getSummary()) end
+        return
+    end
+    task.defer(function()
+        self:scanServices(gameRef)
+        if callback then callback(self:getSummary()) end
+    end)
+end
+
+function _SC:monitorRemote(remote, callback)
+    if not remote then return nil end
+    local conn
+    pcall(function()
+        if remote.OnClientEvent then
+            conn = remote.OnClientEvent:Connect(function(...)
+                local args = { ... }
+                local entry = {
+                    remote_name = remote.Name, arg_count = #args,
+                    timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+                }
+                pcall(function() entry.remote_path = remote:GetFullName() end)
+                if callback then callback(entry) end
+                if self.logger then
+                    self.logger:info("MONITOR", string.format(
+                        "📡 %s fired (%d args)", remote.Name, #args
+                    ), entry)
+                end
+            end)
+            if conn then self.connections[#self.connections+1] = conn end
         end
-    end
+    end)
+    return conn
+end
 
-    for _, remote in ipairs(scanResults.remote_events or {}) do
-        if remote.suspicious then
-            local vuln = {
-                vuln_id = "VULN-RE-DYNAMIC", name = "RemoteEvent potencialmente vulnerável",
-                category = "REMOTE_ABUSE", severity = "MEDIUM",
-                description = string.format("RemoteEvent '%s' com nome suspeito.", remote.name),
-                remediation = "Revisar handler server-side.",
-                source = remote.path,
-                detection_time = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+function _SC:disconnectAll()
+    for _, c in ipairs(self.connections) do
+        pcall(function() c:Disconnect() end)
+    end
+    self.connections = {}
+end
+
+function _SC:getSummary()
+    return {
+        scan_count = self.count,
+        remote_events = #self.results.remote_events,
+        remote_functions = #self.results.remote_functions,
+        bindable_events = #self.results.bindable_events,
+        scripts_analyzed = #self.results.scripts,
+        suspicious_items = #self.results.suspicious,
+    }
+end
+
+function _SC:getResults() return self.results end
+
+function _SC:exportJSON()
+    return _J.pretty({
+        version = "2.0.0", scan_count = self.count,
+        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+        summary = self:getSummary(), results = self.results,
+    })
+end
+
+function _SC:save(fp)
+    local json = self:exportJSON()
+    local ok = false
+    pcall(function() if writefile then writefile(fp, json); ok=true end end)
+    if not ok then pcall(function()
+        local f = io.open(fp, "w"); if f then f:write(json); f:close(); ok=true end
+    end) end
+    return ok
+end
+
+function _SC:reset()
+    self.results = {
+        remote_events={}, remote_functions={}, bindable_events={},
+        scripts={}, suspicious={}, vulnerabilities={},
+    }
+    self.count = 0; self.connections = {}
+end
+
+-- ================================================================
+-- VULNERABILITY DETECTOR (integrado com Risk Score)
+-- ================================================================
+local _VD = {}; _VD.__index = _VD
+
+local VULN_DB = {
+    {id="VULN-CI-001",name="Uso de loadstring",cat="CODE_INJECTION",sev="CRITICAL",
+     ind={"loadstring"},fix="Evitar loadstring. Usar módulos pré-compilados."},
+    {id="VULN-CI-002",name="Require dinâmico",cat="CODE_INJECTION",sev="HIGH",
+     ind={"require"},fix="Usar apenas IDs de módulo estáticos."},
+    {id="VULN-DE-001",name="HTTP para domínio externo",cat="DATA_EXFILTRATION",sev="HIGH",
+     ind={"HttpGet","HttpPost","syn.request","http_request"},fix="Whitelist de domínios."},
+    {id="VULN-MM-001",name="Manipulação de metatables",cat="MEMORY_MANIPULATION",sev="CRITICAL",
+     ind={"getrawmetatable","setrawmetatable"},fix="Proteger metatables com __metatable."},
+    {id="VULN-MM-002",name="Hook de funções",cat="MEMORY_MANIPULATION",sev="CRITICAL",
+     ind={"hookfunction","hookmetamethod"},fix="Verificação de integridade de funções."},
+    {id="VULN-PE-001",name="Acesso a ambiente global",cat="PRIVILEGE_ESCALATION",sev="HIGH",
+     ind={"getgenv","getrenv","getfenv","setfenv"},fix="Isolar ambientes de execução."},
+    {id="VULN-PE-002",name="Manipulação de upvalues",cat="PRIVILEGE_ESCALATION",sev="HIGH",
+     ind={"debug.setupvalue","debug.setconstant"},fix="Evitar dados sensíveis em upvalues."},
+    {id="VULN-IV-001",name="Simulação de input",cat="INPUT_VALIDATION",sev="MEDIUM",
+     ind={"fireclickdetector","firetouchinterest","fireproximityprompt","firesignal"},fix="Validação server-side."},
+    {id="VULN-AB-001",name="Bypass de namecall",cat="AUTH_BYPASS",sev="HIGH",
+     ind={"getnamecallmethod","setnamecallmethod"},fix="Verificações server-side independentes."},
+    {id="VULN-RE-001",name="RemoteEvent sem validação",cat="REMOTE_ABUSE",sev="MEDIUM",
+     ind={"FireServer","OnServerEvent"},fix="Validação de tipo e limites."},
+    {id="VULN-OB-001",name="Código ofuscado detectado",cat="OBFUSCATION",sev="HIGH",
+     ind={"_OBFUSCATION_"},fix="Investigar script ofuscado. Possível payload malicioso."},
+}
+
+function _VD.new(logger)
+    local self = setmetatable({}, _VD)
+    self.logger = logger
+    self.vulns = {}
+    self.stats = { total=0, by_severity={LOW=0,MEDIUM=0,HIGH=0,CRITICAL=0}, by_category={} }
+    return self
+end
+
+function _VD:_isDup(v)
+    for _, e in ipairs(self.vulns) do
+        if e.vuln_id == v.vuln_id and e.source == v.source and e.line == v.line then return true end
+    end
+    return false
+end
+
+--- Analisa resultados do Risk Score para gerar vulnerabilidades
+function _VD:analyzeRiskResults(riskAnalyses)
+    for _, analysis in ipairs(riskAnalyses) do
+        if analysis.level == "NONE" or analysis.level == "LOW" then
+            goto continue_analysis
+        end
+        for _, finding in ipairs(analysis.findings or {}) do
+            for _, vdef in ipairs(VULN_DB) do
+                for _, ind in ipairs(vdef.ind) do
+                    if finding.pattern == ind or finding.pattern:find(ind, 1, true) then
+                        local v = {
+                            vuln_id = vdef.id, name = vdef.name,
+                            category = vdef.cat, severity = vdef.sev,
+                            remediation = vdef.fix,
+                            source = analysis.source,
+                            risk_score = analysis.score,
+                            risk_level = analysis.level,
+                            line = finding.line,
+                            timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+                        }
+                        if not self:_isDup(v) then
+                            self.vulns[#self.vulns+1] = v
+                            self.stats.total = self.stats.total + 1
+                            self.stats.by_severity[vdef.sev] = (self.stats.by_severity[vdef.sev] or 0) + 1
+                            self.stats.by_category[vdef.cat] = (self.stats.by_category[vdef.cat] or 0) + 1
+                            if self.logger then
+                                self.logger:warn("VULN", string.format(
+                                    "🛡️ [%s] %s em %s [%s] score:%.1f",
+                                    v.vuln_id, v.name, v.source, v.severity, analysis.score
+                                ))
+                            end
+                        end
+                        break
+                    end
+                end
+            end
+        end
+        -- Combos geram vulnerabilidades extras
+        for _, combo in ipairs(analysis.combos or {}) do
+            local v = {
+                vuln_id = "VULN-COMBO", name = combo.name,
+                category = "COMBO_ATTACK", severity = "CRITICAL",
+                remediation = "Investigar combinação perigosa de padrões.",
+                source = analysis.source,
+                risk_score = analysis.score,
+                risk_level = analysis.level,
+                combo_patterns = combo.patterns,
+                multiplier = combo.multiplier,
+                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
             }
-            if not self:_isDuplicate(vuln) then
-                self.detectedVulnerabilities[#self.detectedVulnerabilities + 1] = vuln
-                self.stats.total_detected = self.stats.total_detected + 1
+            if not self:_isDup(v) then
+                self.vulns[#self.vulns+1] = v
+                self.stats.total = self.stats.total + 1
+                self.stats.by_severity["CRITICAL"] = (self.stats.by_severity["CRITICAL"] or 0) + 1
+                self.stats.by_category["COMBO_ATTACK"] = (self.stats.by_category["COMBO_ATTACK"] or 0) + 1
+            end
+        end
+        ::continue_analysis::
+    end
+end
+
+--- Analisa resultados do scanner
+function _VD:analyzeScanResults(scanResults)
+    if not scanResults then return end
+    -- Verificar remotes suspeitos
+    for _, r in ipairs(scanResults.remote_events or {}) do
+        if r.suspicious then
+            local v = {
+                vuln_id="VULN-RE-DYN", name="RemoteEvent potencialmente vulnerável",
+                category="REMOTE_ABUSE", severity="MEDIUM",
+                source=r.path, timestamp=os.date("!%Y-%m-%dT%H:%M:%SZ"),
+                remediation="Revisar handler server-side.",
+            }
+            if not self:_isDup(v) then
+                self.vulns[#self.vulns+1] = v
+                self.stats.total = self.stats.total + 1
                 self.stats.by_severity["MEDIUM"] = (self.stats.by_severity["MEDIUM"] or 0) + 1
             end
         end
     end
-
-    for _, httpReq in ipairs(scanResults.http_requests or {}) do
-        local vuln = {
-            vuln_id = "VULN-DE-DYNAMIC", name = "Requisição HTTP detectada",
-            category = "DATA_EXFILTRATION", severity = "HIGH",
-            description = string.format("Requisição HTTP para '%s'.", httpReq.url or "unknown"),
-            remediation = "Verificar se a requisição é legítima.",
-            source = httpReq.url or "unknown",
-            detection_time = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-        }
-        if not self:_isDuplicate(vuln) then
-            self.detectedVulnerabilities[#self.detectedVulnerabilities + 1] = vuln
-            self.stats.total_detected = self.stats.total_detected + 1
-            self.stats.by_severity["HIGH"] = (self.stats.by_severity["HIGH"] or 0) + 1
-        end
-    end
-
-    if self.logger then
-        self.logger:info("VULN_DETECTOR", string.format(
-            "Análise concluída: %d vulnerabilidades", self.stats.total_detected
-        ), self.stats)
-    end
 end
 
-function VulnerabilityDetector:_calculateRiskLevel()
+function _VD:_riskLevel()
     if self.stats.by_severity.CRITICAL > 0 then return "CRITICAL"
     elseif self.stats.by_severity.HIGH > 0 then return "HIGH"
     elseif self.stats.by_severity.MEDIUM > 0 then return "MEDIUM"
@@ -1193,469 +1653,322 @@ function VulnerabilityDetector:_calculateRiskLevel()
     else return "NONE" end
 end
 
-function VulnerabilityDetector:_generateRecommendations()
-    local recommendations = {}
-    local seenCategories = {}
-    local recMap = {
-        REMOTE_ABUSE = "Implementar validação rigorosa de dados em todos os RemoteEvents/Functions. Adicionar rate limiting.",
-        CODE_INJECTION = "Eliminar uso de loadstring e require dinâmico. Usar módulos pré-compilados.",
-        DATA_EXFILTRATION = "Implementar whitelist de domínios para requisições HTTP.",
-        MEMORY_MANIPULATION = "Proteger metatables críticas. Verificar integridade de funções.",
-        PRIVILEGE_ESCALATION = "Isolar ambientes de execução. Evitar dados sensíveis em upvalues.",
-        AUTHENTICATION_BYPASS = "Implementar verificações server-side independentes.",
-        INPUT_VALIDATION = "Validar todas as interações no servidor. Implementar cooldowns.",
-        NETWORK_EXPLOIT = "Monitorar e limitar tráfego de rede.",
+function _VD:_recommendations()
+    local recs = {}; local seen = {}
+    local map = {
+        CODE_INJECTION="Eliminar loadstring e require dinâmico.",
+        DATA_EXFILTRATION="Whitelist de domínios para HTTP.",
+        MEMORY_MANIPULATION="Proteger metatables. Verificar integridade de funções.",
+        PRIVILEGE_ESCALATION="Isolar ambientes. Evitar dados sensíveis em upvalues.",
+        AUTH_BYPASS="Verificações server-side independentes.",
+        INPUT_VALIDATION="Validar interações no servidor. Cooldowns.",
+        REMOTE_ABUSE="Validação rigorosa em RemoteEvents. Rate limiting.",
+        COMBO_ATTACK="Investigar combinações perigosas. Isolar componentes.",
+        OBFUSCATION="Auditar scripts ofuscados. Possíveis payloads.",
     }
-    for _, vuln in ipairs(self.detectedVulnerabilities) do
-        if not seenCategories[vuln.category] then
-            seenCategories[vuln.category] = true
-            recommendations[#recommendations + 1] = {
-                category = vuln.category,
-                priority = vuln.severity,
-                recommendation = recMap[vuln.category] or "Revisar vulnerabilidades desta categoria.",
-            }
+    for _, v in ipairs(self.vulns) do
+        if not seen[v.category] then
+            seen[v.category] = true
+            recs[#recs+1] = { category=v.category, priority=v.severity, recommendation=map[v.category] or "Revisar." }
         end
     end
-    return recommendations
+    return recs
 end
 
-function VulnerabilityDetector:generateReport()
-    local severityOrder = { CRITICAL = 1, HIGH = 2, MEDIUM = 3, LOW = 4 }
+function _VD:generateReport()
     local sorted = {}
-    for _, v in ipairs(self.detectedVulnerabilities) do sorted[#sorted + 1] = v end
-    table.sort(sorted, function(a, b)
-        return (severityOrder[a.severity] or 5) < (severityOrder[b.severity] or 5)
-    end)
+    local order = {CRITICAL=1,HIGH=2,MEDIUM=3,LOW=4}
+    for _, v in ipairs(self.vulns) do sorted[#sorted+1] = v end
+    table.sort(sorted, function(a,b) return (order[a.severity] or 5) < (order[b.severity] or 5) end)
     return {
-        report_version = "1.0.0",
-        generated_at = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-        summary = {
-            total_vulnerabilities = self.stats.total_detected,
-            by_severity = self.stats.by_severity,
-            by_category = self.stats.by_category,
-            risk_level = self:_calculateRiskLevel(),
-        },
-        vulnerabilities = sorted,
-        recommendations = self:_generateRecommendations(),
+        version="2.0.0", generated=os.date("!%Y-%m-%dT%H:%M:%SZ"),
+        summary={total=self.stats.total, by_severity=self.stats.by_severity, by_category=self.stats.by_category, risk_level=self:_riskLevel()},
+        vulnerabilities=sorted, recommendations=self:_recommendations(),
     }
 end
 
-function VulnerabilityDetector:exportReportJSON()
-    return JSON.encodePretty(self:generateReport())
+function _VD:exportJSON() return _J.pretty(self:generateReport()) end
+
+function _VD:save(fp)
+    local json = self:exportJSON(); local ok = false
+    pcall(function() if writefile then writefile(fp, json); ok=true end end)
+    if not ok then pcall(function() local f=io.open(fp,"w"); if f then f:write(json); f:close(); ok=true end end) end
+    return ok
 end
 
-function VulnerabilityDetector:saveReport(filepath)
-    local jsonStr = self:exportReportJSON()
-    local saved = false
-    if writefile then
-        local ok = pcall(function() writefile(filepath, jsonStr) end)
-        if ok then saved = true end
-    end
-    if not saved then
-        local file = io.open(filepath, "w")
-        if file then file:write(jsonStr); file:close(); saved = true end
-    end
-    if saved and self.logger then
-        self.logger:info("VULN_DETECTOR", "Relatório salvo em: " .. filepath)
-    end
-    return saved
-end
-
-function VulnerabilityDetector:getVulnerabilities() return self.detectedVulnerabilities end
-function VulnerabilityDetector:getStats() return self.stats end
-function VulnerabilityDetector:reset()
-    self.detectedVulnerabilities = {}
-    self.stats = {
-        total_detected = 0,
-        by_severity = { LOW = 0, MEDIUM = 0, HIGH = 0, CRITICAL = 0 },
-        by_category = {},
-    }
+function _VD:getVulns() return self.vulns end
+function _VD:getStats() return self.stats end
+function _VD:reset()
+    self.vulns = {}
+    self.stats = { total=0, by_severity={LOW=0,MEDIUM=0,HIGH=0,CRITICAL=0}, by_category={} }
 end
 
 -- ================================================================
--- MÓDULO: Network Monitor
+-- 🎯 API PRINCIPAL: ScanningLua
 -- ================================================================
-local NetworkMonitor = {}
-NetworkMonitor.__index = NetworkMonitor
+local _V = "2.0.0"
 
-function NetworkMonitor.new(config, logger)
-    local self = setmetatable({}, NetworkMonitor)
-    self.config = config or {}
-    self.logger = logger
-    self.requestLog = {}
-    self.blockedRequests = {}
-    self.hooks = {}
-    self.stats = {
-        total_requests = 0, blocked_requests = 0, suspicious_requests = 0,
-        by_method = {}, by_domain = {},
-    }
-    return self
-end
+print("╔══════════════════════════════════════════╗")
+print("║      Scanning-Lua v".._V.."               ║")
+print("║   Scanner de Segurança para Roblox      ║")
+print("╚══════════════════════════════════════════╝")
 
-function NetworkMonitor.extractDomain(url)
-    if type(url) ~= "string" then return nil end
-    local domain = url:match("^https?://([^/]+)") or url:match("^([^/]+)")
-    if domain then domain = domain:match("^([^:]+)") end
-    return domain
-end
+-- Criar pasta de saída
+pcall(function() if makefolder then makefolder("ScanningLua"); makefolder("ScanningLua/logs"); makefolder("ScanningLua/reports") end end)
 
-function NetworkMonitor:isDomainAllowed(domain)
-    if not domain then return false end
-    domain = domain:lower()
-    for _, allowed in ipairs(self.config.ALLOWED_DOMAINS or {}) do
-        if domain == allowed:lower() or domain:match("%." .. allowed:lower():gsub("%.", "%%.") .. "$") then
-            return true
-        end
-    end
-    return false
-end
+-- Inicializar módulos
+local logger = _L.new("INFO", false)
+local antiDet = _AD.new(logger)
+antiDet:enable()
 
-function NetworkMonitor:logRequest(method, url, headers, body)
-    local domain = NetworkMonitor.extractDomain(url)
-    local isAllowed = self:isDomainAllowed(domain)
-    local isSuspicious = not isAllowed
+local riskEngine = _RS.new(logger)
+local obfDetector = _OD.new(logger)
+local scanner = _SC.new(logger, riskEngine, obfDetector)
+local vulnDetector = _VD.new(logger)
+local networkMon = _NM.new(logger)
+local envFinger = _EF.new(logger)
+local discord = _DW.new(nil, logger)
 
-    local entry = {
-        id = #self.requestLog + 1,
-        method = method or "UNKNOWN",
-        url = url, domain = domain,
-        is_allowed = isAllowed, is_suspicious = isSuspicious,
-        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-        has_body = body ~= nil and #(body or "") > 0,
-        body_size = body and #body or 0,
-    }
-    self.requestLog[#self.requestLog + 1] = entry
-    self.stats.total_requests = self.stats.total_requests + 1
-    self.stats.by_method[method] = (self.stats.by_method[method] or 0) + 1
-    self.stats.by_domain[domain or "unknown"] = (self.stats.by_domain[domain or "unknown"] or 0) + 1
-
-    if isSuspicious then
-        self.stats.suspicious_requests = self.stats.suspicious_requests + 1
-        self.blockedRequests[#self.blockedRequests + 1] = entry
-        if self.logger then
-            self.logger:warn("NETWORK", string.format(
-                "Requisição suspeita: %s %s (domínio: %s)", method, url, domain or "unknown"
-            ), entry)
-        end
-    elseif self.config.LOG_ALL_REQUESTS and self.logger then
-        self.logger:debug("NETWORK", string.format("Requisição: %s %s", method, url), entry)
-    end
-    return entry
-end
-
-function NetworkMonitor:installHooks()
-    if not self.config.MONITOR_HTTP then return end
-    if self.logger then self.logger:info("NETWORK", "Instalando hooks de rede") end
-
-    local selfRef = self
-
-    pcall(function()
-        if hookfunction and game and game.HttpGet then
-            local original = hookfunction(game.HttpGet, function(gameRef, url, ...)
-                selfRef:logRequest("GET", url)
-                return original(gameRef, url, ...)
-            end)
-            selfRef.hooks.httpGet = original
-        end
-    end)
-
-    pcall(function()
-        if hookfunction and game and game.HttpPost then
-            local original = hookfunction(game.HttpPost, function(gameRef, url, body, ...)
-                selfRef:logRequest("POST", url, nil, body)
-                return original(gameRef, url, body, ...)
-            end)
-            selfRef.hooks.httpPost = original
-        end
-    end)
-
-    pcall(function()
-        local requestFn = syn and syn.request or http_request or request
-        if hookfunction and requestFn then
-            local original = hookfunction(requestFn, function(opts, ...)
-                local m = opts and opts.Method or "GET"
-                local u = opts and opts.Url or "unknown"
-                local b = opts and opts.Body
-                selfRef:logRequest(m, u, nil, b)
-                return original(opts, ...)
-            end)
-            selfRef.hooks.request = original
-        end
-    end)
-end
-
-function NetworkMonitor:analyzeTraffic()
-    local alerts = {}
-    for domain, count in pairs(self.stats.by_domain) do
-        if not self:isDomainAllowed(domain) then
-            alerts[#alerts + 1] = {
-                type = "UNAUTHORIZED_DOMAIN", domain = domain,
-                request_count = count, severity = "HIGH",
-                description = string.format("Domínio não autorizado '%s' (%d requisições)", domain, count),
-            }
-        end
-    end
-    if self.stats.total_requests > 100 then
-        alerts[#alerts + 1] = {
-            type = "HIGH_REQUEST_VOLUME", total = self.stats.total_requests,
-            severity = "MEDIUM",
-            description = string.format("Volume alto: %d requisições", self.stats.total_requests),
-        }
-    end
-    return alerts
-end
-
-function NetworkMonitor:getRequestLog() return self.requestLog end
-function NetworkMonitor:getBlockedRequests() return self.blockedRequests end
-function NetworkMonitor:getStats() return self.stats end
-
-function NetworkMonitor:exportJSON()
-    return JSON.encodePretty({
-        export_time = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-        stats = self.stats,
-        alerts = self:analyzeTraffic(),
-        request_log = self.requestLog,
-        blocked_requests = self.blockedRequests,
-    })
-end
-
-function NetworkMonitor:reset()
-    self.requestLog = {}
-    self.blockedRequests = {}
-    self.stats = {
-        total_requests = 0, blocked_requests = 0, suspicious_requests = 0,
-        by_method = {}, by_domain = {},
-    }
-end
-
--- ================================================================
--- INICIALIZAÇÃO & API PRINCIPAL
--- ================================================================
-print("============================================")
-print("  Scanning-Lua v" .. Config.VERSION)
-print("  Scanner de Segurança para Roblox")
-print("  Carregado via loadstring")
-print("============================================")
-
--- Criar pasta de saída (executor Roblox)
-pcall(function()
-    if makefolder then
-        makefolder("ScanningLua")
-        makefolder("ScanningLua/logs")
-        makefolder("ScanningLua/reports")
-    end
-end)
-
-local logger = Logger.new(Config.Logger)
-logger:info("MAIN", "Scanning-Lua inicializado", { version = Config.VERSION })
-
-local filters = Filters.new(Config.Filters, logger)
-local scanner = Scanner.new(Config.Scanner, logger, filters)
-local vulnDetector = VulnerabilityDetector.new(Config.Vulnerability, logger)
-local networkMonitor = NetworkMonitor.new(Config.Network, logger)
-
-logger:info("MAIN", "Todos os módulos carregados")
+logger:info("INIT", "Todos os módulos v2 carregados")
 
 -- API pública
-local ScanningLua = {}
+local ScanningLua = { _VERSION = _V }
 
+--- Scan completo
 function ScanningLua.fullScan(gameInstance)
-    local target = gameInstance or game
+    local target = gameInstance
+    if not target then pcall(function() target = game end) end
 
-    logger:info("MAIN", "========== SCAN COMPLETO INICIADO ==========")
+    logger:info("MAIN", "═══ SCAN COMPLETO INICIADO ═══")
 
-    logger:info("MAIN", "[1/4] Instalando monitor de rede...")
-    networkMonitor:installHooks()
+    -- 1. Fingerprint do ambiente
+    logger:info("MAIN", "[1/5] Fingerprinting ambiente...")
+    local envResult = envFinger:scan()
 
+    -- 2. Hooks de rede
+    logger:info("MAIN", "[2/5] Instalando monitor de rede...")
+    networkMon:installHooks()
+
+    -- 3. Scan de serviços
     if target then
-        logger:info("MAIN", "[2/4] Escaneando serviços do jogo...")
+        logger:info("MAIN", "[3/5] Escaneando serviços...")
         scanner:scanServices(target)
     else
-        logger:warn("MAIN", "[2/4] Objeto 'game' não disponível")
+        logger:warn("MAIN", "[3/5] game não disponível - scan ignorado")
     end
 
-    logger:info("MAIN", "[3/4] Analisando vulnerabilidades...")
+    -- 4. Análise de vulnerabilidades (baseada em Risk Score)
+    logger:info("MAIN", "[4/5] Analisando vulnerabilidades...")
+    vulnDetector:analyzeRiskResults(riskEngine:getAnalyses())
     vulnDetector:analyzeScanResults(scanner:getResults())
 
-    logger:info("MAIN", "[4/4] Analisando tráfego de rede...")
-    local networkAlerts = networkMonitor:analyzeTraffic()
+    -- 5. Análise de rede
+    logger:info("MAIN", "[5/5] Analisando tráfego...")
+    local netAlerts = networkMon:analyzeTraffic()
+
+    -- Calcular score total
+    local totalScore = 0
+    for _, a in ipairs(riskEngine:getAnalyses()) do totalScore = totalScore + a.score end
 
     local summary = {
         scan_results = scanner:getSummary(),
         vulnerability_stats = vulnDetector:getStats(),
-        network_stats = networkMonitor:getStats(),
-        network_alerts = #networkAlerts,
-        filter_stats = filters:getStats(),
+        network_stats = networkMon:getStats(),
+        network_alerts = #netAlerts,
+        obfuscation_stats = obfDetector:getStats(),
+        environment = {
+            executor = envResult.executor and envResult.executor.name or "?",
+            risk = envResult.risk and envResult.risk.level or "?",
+        },
+        total_risk_score = math.floor(totalScore * 100) / 100,
     }
 
-    logger:info("MAIN", "========== SCAN COMPLETO FINALIZADO ==========", summary)
-    ScanningLua.saveAllResults()
+    logger:info("MAIN", "═══ SCAN COMPLETO FINALIZADO ═══", summary)
+
+    -- Salvar automaticamente
+    ScanningLua.saveAll()
+
+    -- Discord webhook
+    discord:sendSummary(summary)
+
     return summary
 end
 
-function ScanningLua.scanCode(code, sourceName)
-    sourceName = sourceName or "direct_input"
-    logger:info("MAIN", string.format("Analisando código: %s (%d chars)", sourceName, #code))
-    local filterMatches = filters:analyzeCode(code, sourceName)
-    local vulnerabilities = vulnDetector:analyzeFilterResults(filterMatches, sourceName)
+--- Analisar código com score de risco contextual
+function ScanningLua.scanCode(code, source)
+    if type(code) ~= "string" then return { score=0, level="NONE" } end
+    source = source or "direct_input"
+
+    -- Risk Score
+    local risk = riskEngine:analyze(code, source)
+
+    -- Obfuscação
+    local obf = obfDetector:analyze(code, source)
+
+    -- Vulnerabilidades
+    vulnDetector:analyzeRiskResults({ risk })
+
     return {
-        source = sourceName,
-        code_length = #code,
-        filter_matches = filterMatches,
-        match_count = #filterMatches,
-        vulnerabilities = vulnerabilities,
-        vulnerability_count = #vulnerabilities,
+        source = source,
+        risk = risk,
+        obfuscation = obf,
+        vulnerabilities = vulnDetector:getVulns(),
     }
 end
 
-function ScanningLua.scanScript(scriptInstance)
-    if not scriptInstance then return end
-    local source = nil
-    pcall(function() source = scriptInstance.Source end)
-    if not source then
-        pcall(function() if decompile then source = decompile(scriptInstance) end end)
-    end
+--- Analisar instância de script
+function ScanningLua.scanScript(inst)
+    if not inst then return nil end
+    local source
+    pcall(function() source = inst.Source end)
+    if not source then pcall(function() if decompile then source = decompile(inst) end end) end
     if source then
         local name = "unknown"
-        pcall(function() name = scriptInstance:GetFullName() end)
+        pcall(function() name = inst:GetFullName() end)
         return ScanningLua.scanCode(source, name)
     end
-    logger:warn("MAIN", "Não foi possível obter o source do script")
+    logger:warn("MAIN", "Não foi possível obter source do script")
     return nil
 end
 
-function ScanningLua.monitorRemote(remote, callback)
-    return scanner:monitorRemote(remote, callback)
-end
-
+--- Monitorar todos os RemoteEvents
 function ScanningLua.monitorAllRemotes(callback)
-    local remotes = scanner:getResults().remote_events
-    local connections = {}
-    for _, remote in ipairs(remotes) do
-        local conn = scanner:monitorRemote(remote.instance, callback)
-        if conn then connections[#connections + 1] = conn end
-    end
-
-    -- Também buscar via game se disponível
+    local conns = {}
     pcall(function()
-        local function findRemotes(parent)
+        local function find(parent)
             for _, child in ipairs(parent:GetChildren()) do
-                if child:IsA("RemoteEvent") then
-                    local conn = scanner:monitorRemote(child, callback)
-                    if conn then connections[#connections + 1] = conn end
+                if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
+                    local c = scanner:monitorRemote(child, callback)
+                    if c then conns[#conns+1] = c end
                 end
-                findRemotes(child)
+                find(child)
             end
         end
-        findRemotes(game:GetService("ReplicatedStorage"))
+        find(game:GetService("ReplicatedStorage"))
     end)
-
-    logger:info("MAIN", string.format("Monitorando %d RemoteEvents", #connections))
-    return connections
+    logger:info("MAIN", string.format("📡 Monitorando %d remotes", #conns))
+    return conns
 end
 
-function ScanningLua.logHTTPRequest(method, url, headers, body)
-    return networkMonitor:logRequest(method, url, headers, body)
+--- Registrar request HTTP
+function ScanningLua.logHTTP(method, url, headers, body)
+    return networkMon:logRequest(method, url, headers, body)
 end
 
-function ScanningLua.saveAllResults()
-    local timestamp = os.date("!%Y%m%d_%H%M%S")
+--- Configurar Discord webhook
+function ScanningLua.setDiscordWebhook(url)
+    discord:setUrl(url)
+    logger:info("MAIN", "Discord webhook configurado")
+end
 
-    -- Logs
-    logger:flush(string.format("ScanningLua/logs/scan_log_%s.json", timestamp))
-
-    -- Resultados do scanner
-    scanner:saveResults(string.format("ScanningLua/reports/scan_results_%s.json", timestamp))
-
-    -- Relatório de vulnerabilidades
-    vulnDetector:saveReport(string.format("ScanningLua/reports/vuln_report_%s.json", timestamp))
-
-    -- Relatório de rede
-    local networkData = networkMonitor:exportJSON()
+--- Salvar todos os resultados
+function ScanningLua.saveAll()
+    local ts = os.date("!%Y%m%d_%H%M%S")
+    logger:save(string.format("ScanningLua/logs/log_%s.json", ts))
+    scanner:save(string.format("ScanningLua/reports/scan_%s.json", ts))
+    vulnDetector:save(string.format("ScanningLua/reports/vulns_%s.json", ts))
     pcall(function()
-        if writefile then
-            writefile(string.format("ScanningLua/reports/network_%s.json", timestamp), networkData)
-        end
+        local nd = networkMon:exportJSON()
+        if writefile then writefile(string.format("ScanningLua/reports/network_%s.json", ts), nd) end
     end)
-
-    logger:info("MAIN", "Todos os resultados salvos em ScanningLua/")
+    logger:info("MAIN", "📁 Resultados salvos em ScanningLua/")
 end
 
-function ScanningLua.getVulnerabilityReport()
-    return vulnDetector:generateReport()
-end
+--- Relatório de vulnerabilidades
+function ScanningLua.getReport() return vulnDetector:generateReport() end
+function ScanningLua.getReportJSON() return vulnDetector:exportJSON() end
 
-function ScanningLua.getVulnerabilityReportJSON()
-    return vulnDetector:exportReportJSON()
-end
-
+--- Estatísticas
 function ScanningLua.getStats()
     return {
         scanner = scanner:getSummary(),
         vulnerabilities = vulnDetector:getStats(),
-        network = networkMonitor:getStats(),
-        filters = filters:getStats(),
+        network = networkMon:getStats(),
+        obfuscation = obfDetector:getStats(),
         logger = logger:getStats(),
     }
 end
 
+--- Print resumo formatado
 function ScanningLua.printSummary()
-    local stats = ScanningLua.getStats()
-    print("\n============================================")
-    print("  RESUMO DO SCAN")
-    print("============================================")
-    print(string.format("  Scripts analisados:      %d", stats.scanner.scripts_analyzed))
-    print(string.format("  RemoteEvents:            %d", stats.scanner.remote_events))
-    print(string.format("  RemoteFunctions:         %d", stats.scanner.remote_functions))
-    print(string.format("  Itens suspeitos:         %d", stats.scanner.suspicious_items))
-    print(string.format("  Vulnerabilidades:        %d", stats.vulnerabilities.total_detected))
-    print(string.format("    CRITICAL: %d", stats.vulnerabilities.by_severity.CRITICAL))
-    print(string.format("    HIGH:     %d", stats.vulnerabilities.by_severity.HIGH))
-    print(string.format("    MEDIUM:   %d", stats.vulnerabilities.by_severity.MEDIUM))
-    print(string.format("    LOW:      %d", stats.vulnerabilities.by_severity.LOW))
-    print(string.format("  Requisições de rede:     %d", stats.network.total_requests))
-    print(string.format("  Requisições suspeitas:   %d", stats.network.suspicious_requests))
-    print("============================================\n")
+    local s = ScanningLua.getStats()
+    local vs = s.vulnerabilities.by_severity
+    print("\n╔══════════════════════════════════════════╗")
+    print("║            RESUMO DO SCAN                ║")
+    print("╠══════════════════════════════════════════╣")
+    print(string.format("║  Scripts analisados:    %-16d ║", s.scanner.scripts_analyzed))
+    print(string.format("║  RemoteEvents:          %-16d ║", s.scanner.remote_events))
+    print(string.format("║  RemoteFunctions:       %-16d ║", s.scanner.remote_functions))
+    print(string.format("║  Itens suspeitos:       %-16d ║", s.scanner.suspicious_items))
+    print("╠══════════════════════════════════════════╣")
+    print(string.format("║  🔴 CRITICAL:           %-16d ║", vs.CRITICAL))
+    print(string.format("║  🟠 HIGH:               %-16d ║", vs.HIGH))
+    print(string.format("║  🟡 MEDIUM:             %-16d ║", vs.MEDIUM))
+    print(string.format("║  🟢 LOW:                %-16d ║", vs.LOW))
+    print("╠══════════════════════════════════════════╣")
+    print(string.format("║  Network requests:      %-16d ║", s.network.total))
+    print(string.format("║  Network suspicious:    %-16d ║", s.network.suspicious))
+    print(string.format("║  Ofuscação detectada:   %-16d ║", s.obfuscation.detected))
+    print("╚══════════════════════════════════════════╝")
 end
 
+--- Fingerprint do ambiente
+function ScanningLua.getEnvironment()
+    return envFinger:getResult()
+end
+
+--- Resetar
 function ScanningLua.reset()
-    scanner:reset()
-    vulnDetector:reset()
-    networkMonitor:reset()
-    filters:reset()
+    scanner:reset(); vulnDetector:reset(); networkMon:reset(); obfDetector:reset()
     logger:info("MAIN", "Todos os módulos resetados")
 end
 
+--- Shutdown
 function ScanningLua.shutdown()
     logger:info("MAIN", "Encerrando Scanning-Lua...")
-    ScanningLua.saveAllResults()
-    logger:close()
-    print("[Scanning-Lua] Encerrado com sucesso.")
+    scanner:disconnectAll()
+    ScanningLua.saveAll()
+    logger:flushPrints()
+    print("[Scanning-Lua] Encerrado.")
 end
 
 -- ================================================================
--- AUTO-EXECUÇÃO: Scan completo ao carregar
+-- AUTO-EXECUÇÃO (configurável)
 -- ================================================================
-print("\n[Scanning-Lua] Executando scan completo...")
-ScanningLua.fullScan()
-ScanningLua.printSummary()
-
-print("[Scanning-Lua] Scanner pronto. Use a API via getgenv().ScanningLua")
-print("  Comandos disponíveis:")
-print("    ScanningLua.fullScan()         - Scan completo do jogo")
-print("    ScanningLua.scanCode(code)     - Analisar código Lua")
-print("    ScanningLua.scanScript(inst)   - Analisar um script")
-print("    ScanningLua.monitorAllRemotes() - Monitorar RemoteEvents")
-print("    ScanningLua.printSummary()     - Ver resumo")
-print("    ScanningLua.saveAllResults()   - Salvar relatórios JSON")
-print("    ScanningLua.getVulnerabilityReportJSON() - Ver relatório")
-print("    ScanningLua.shutdown()         - Encerrar e salvar")
-
--- Expor globalmente para acesso no executor
+local autoScan = true
 pcall(function()
-    if getgenv then
-        getgenv().ScanningLua = ScanningLua
+    if getgenv and getgenv().ScanningLua_AUTO_SCAN == false then
+        autoScan = false
     end
 end)
+
+if autoScan then
+    -- Delay aleatório (anti-detecção)
+    pcall(function()
+        if task and task.wait then task.wait(math.random() * 0.3) end
+    end)
+
+    print("\n[Scanning-Lua] Executando scan completo...")
+    ScanningLua.fullScan()
+    ScanningLua.printSummary()
+end
+
+print("\n[Scanning-Lua] API pronta. Comandos:")
+print("  ScanningLua.fullScan()              -- Scan completo")
+print("  ScanningLua.scanCode(code, name)    -- Analisar código (risk score)")
+print("  ScanningLua.scanScript(inst)        -- Analisar script")
+print("  ScanningLua.monitorAllRemotes(cb)   -- Monitorar remotes")
+print("  ScanningLua.setDiscordWebhook(url)  -- Configurar Discord")
+print("  ScanningLua.printSummary()          -- Resumo formatado")
+print("  ScanningLua.getReportJSON()         -- Relatório JSON")
+print("  ScanningLua.getEnvironment()        -- Fingerprint do executor")
+print("  ScanningLua.saveAll()               -- Salvar relatórios")
+print("  ScanningLua.shutdown()              -- Encerrar")
+print("")
+print("  Desativar auto-scan:")
+print("  getgenv().ScanningLua_AUTO_SCAN = false")
+
+-- Expor globalmente
+pcall(function() if getgenv then getgenv().ScanningLua = ScanningLua end end)
 
 return ScanningLua

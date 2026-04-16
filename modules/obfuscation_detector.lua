@@ -96,7 +96,7 @@ function ObfuscationDetector:_detectStringConcat(code, source, detections)
         local pattern = ""
         for i, part in ipairs(entry.parts) do
             if i > 1 then
-                pattern = pattern .. '["%']%s*%.%.%s*["\']'
+                pattern = pattern .. '["\']%s*%.%.%s*["\']'
             end
             pattern = pattern .. part
         end
