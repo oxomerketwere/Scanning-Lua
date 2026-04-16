@@ -7,7 +7,7 @@
 local Config = {}
 
 -- Versão do scanner
-Config.VERSION = "2.0.0"
+Config.VERSION = "3.0.0"
 Config.NAME = "Scanning-Lua"
 
 -- Diretórios de saída
@@ -143,6 +143,114 @@ Config.Network = {
     },
     -- Registrar todas as requisições (não apenas suspeitas)
     LOG_ALL_REQUESTS = false,
+}
+
+-- Configurações do Behavior Analyzer (#11)
+Config.Behavior = {
+    -- Máximo de RemoteEvents criados antes de alertar
+    MAX_REMOTE_CREATIONS = 10,
+    -- Máximo de chamadas FireServer por minuto
+    MAX_FIRE_SERVER_PER_MINUTE = 30,
+    -- Máximo de GUIs invisíveis
+    MAX_INVISIBLE_GUIS = 3,
+    -- Máximo de instâncias criadas em burst
+    MAX_INSTANCE_BURST = 50,
+    -- Janela de burst (segundos)
+    BURST_WINDOW_SECONDS = 5,
+}
+
+-- Configurações do Deobfuscator (#12)
+Config.Deobfuscator = {
+    -- Habilitar deobfuscação automática
+    ENABLED = true,
+    -- Resolver hex escapes
+    RESOLVE_HEX = true,
+    -- Resolver string.char
+    RESOLVE_STRING_CHAR = true,
+    -- Juntar strings concatenadas
+    JOIN_STRINGS = true,
+    -- Detectar base64
+    DETECT_BASE64 = true,
+}
+
+-- Configurações do Signature System (#13)
+Config.Signatures = {
+    -- Assinaturas customizadas adicionais
+    CUSTOM_SIGNATURES = {
+        -- Exemplo:
+        -- { name="Custom Backdoor", pattern="my_backdoor_pattern", severity="CRITICAL" },
+    },
+}
+
+-- Configurações do Heuristic Engine (#14 + #22)
+Config.Heuristic = {
+    -- Pesos customizados (sobrescreve os padrão)
+    CUSTOM_WEIGHTS = {
+        -- Exemplo:
+        -- loadstring = 10,
+    },
+}
+
+-- Configurações do Incremental Scanner (#15)
+Config.Incremental = {
+    -- Habilitar scanner incremental
+    ENABLED = true,
+}
+
+-- Configurações do Thread Controller (#16)
+Config.ThreadControl = {
+    -- Máximo de tasks simultâneas
+    MAX_CONCURRENT_TASKS = 3,
+    -- Yield a cada N operações
+    YIELD_INTERVAL = 10,
+    -- Duração do yield (segundos)
+    YIELD_DURATION = 0.03,
+    -- Tamanho do lote de processamento
+    BATCH_SIZE = 20,
+}
+
+-- Configurações do Stealth Mode (#19)
+Config.Stealth = {
+    -- Habilitar modo stealth
+    ENABLED = false,
+    -- Buffer output em vez de imprimir diretamente
+    BUFFER_OUTPUT = false,
+    -- Flush buffer para console ao final
+    FLUSH_TO_CONSOLE = true,
+}
+
+-- Configurações do Debug System (#20)
+Config.Debug = {
+    -- Modo verbose
+    VERBOSE_MODE = false,
+    -- Máximo de eventos no log
+    MAX_EVENTS = 1000,
+}
+
+-- Configurações do Continuous Monitor (#24)
+Config.ContinuousMonitor = {
+    -- Intervalo entre ciclos de verificação (segundos)
+    SCAN_INTERVAL = 30,
+    -- Habilitar monitoramento contínuo
+    ENABLED = false,
+}
+
+-- Configurações do False Positive Reducer (#26)
+Config.FalsePositive = {
+    -- Score mínimo para gerar alerta
+    MIN_SCORE_TO_ALERT = 10,
+    -- Severidade mínima para gerar alerta
+    MIN_SEVERITY_TO_ALERT = "MEDIUM",
+    -- Scripts na whitelist (ignorados pelo scanner)
+    WHITELISTED_SCRIPTS = {},
+    -- Padrões na whitelist
+    WHITELISTED_PATTERNS = {},
+    -- Domínios confiáveis
+    WHITELISTED_DOMAINS = {
+        "roblox.com",
+        "rbxcdn.com",
+        "robloxcdn.com",
+    },
 }
 
 return Config
