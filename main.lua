@@ -392,6 +392,8 @@ function ScanningLua.getStats()
         network = netStats,
         filters = filters:getStats(),
         logger = logger:getStats(),
+        -- Log entries para exibição na GUI (#27)
+        log_entries = logger:getEntries(),
         -- Módulos avançados
         behavior = behaviorAnalyzer:getStats(),
         heuristic = heuristicStats,
