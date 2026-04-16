@@ -988,6 +988,21 @@ function ScannerGui:_populateOverview(page, data)
     self:_createStatBar(scanSection, "RemoteFunctions", scanner.remote_functions or 0, maxScripts, COLORS.MEDIUM, 3)
     self:_createStatBar(scanSection, "Itens Suspeitos", scanner.suspicious_items or 0, maxScripts, COLORS.HIGH, 4)
 
+    -- Network Overview
+    local net = data.network or {}
+    local totalReqs = net.total_requests or net.total or 0
+    local suspReqs = net.suspicious_requests or net.suspicious or 0
+    if totalReqs > 0 or suspReqs > 0 then
+        self:_createStatBar(scanSection, "Network Requests", totalReqs, math.max(totalReqs, 1), COLORS.ACCENT, 5)
+        self:_createStatBar(scanSection, "Network Suspeitos", suspReqs, math.max(totalReqs, 1), COLORS.HIGH, 6)
+    end
+
+    -- Obfuscation Overview (v2 loader data)
+    local obf = data.obfuscation or {}
+    if obf.detected and obf.detected > 0 then
+        self:_createStatBar(scanSection, "Ofuscação Detectada", obf.detected or 0, math.max(obf.detected or 1, 1), COLORS.HIGH, 7)
+    end
+
     -- Vulnerabilidades Resumo
     local vulnSection = self:_createSection(page, "🛡️ Vulnerabilidades", 3)
 
@@ -997,8 +1012,8 @@ function ScannerGui:_populateOverview(page, data)
     self:_createStatBar(vulnSection, "🟡 LOW", bySev.LOW or 0, math.max(totalVuln, 1), COLORS.LOW, 4)
 
     -- Heuristic Summary
-    if heuristic.total_analyzed then
-        local heuSection = self:_createSection(page, "🧠 Heuristic Summary", 4)
+    if heuristic.total_analyzed and heuristic.total_analyzed > 0 then
+        local heuSection = self:_createSection(page, "🧠 Heuristic / Risk Analysis", 4)
         self:_createStatBar(heuSection, "Analisados", heuristic.total_analyzed or 0, math.max(heuristic.total_analyzed or 1, 1), COLORS.ACCENT, 1)
         self:_createStatBar(heuSection, "Score Máximo", heuristic.max_score or 0, 100, COLORS.HIGH, 2)
         self:_createStatBar(heuSection, "Score Médio", math.floor(heuristic.average_score or 0), 100, COLORS.MEDIUM, 3)
@@ -1025,12 +1040,13 @@ function ScannerGui:_populateOverview(page, data)
 
     -- Botão copiar overview inteiro
     local overviewText = string.format(
-        "=== Scanning-Lua Overview ===\nRisk Level: %s\nVulnerabilities: %d\n  CRITICAL: %d\n  HIGH: %d\n  MEDIUM: %d\n  LOW: %d\nScripts Analyzed: %d\nRemoteEvents: %d\nRemoteFunctions: %d\nSuspicious Items: %d\nHeuristic Max Score: %d\nHeuristic Avg Score: %.1f",
+        "=== Scanning-Lua Overview ===\nRisk Level: %s\nVulnerabilities: %d\n  CRITICAL: %d\n  HIGH: %d\n  MEDIUM: %d\n  LOW: %d\nScripts Analyzed: %d\nRemoteEvents: %d\nRemoteFunctions: %d\nSuspicious Items: %d\nNetwork Requests: %d\nNetwork Suspicious: %d\nHeuristic Max Score: %s\nHeuristic Avg Score: %s",
         riskLevel, totalVuln,
         bySev.CRITICAL or 0, bySev.HIGH or 0, bySev.MEDIUM or 0, bySev.LOW or 0,
         scanner.scripts_analyzed or 0, scanner.remote_events or 0,
         scanner.remote_functions or 0, scanner.suspicious_items or 0,
-        heuristic.max_score or 0, heuristic.average_score or 0
+        totalReqs, suspReqs,
+        tostring(heuristic.max_score or 0), string.format("%.1f", heuristic.average_score or 0)
     )
 
     local copyOverviewBtn = self:_create("TextButton", {
@@ -1073,12 +1089,21 @@ function ScannerGui:_populateVulns(page, data)
                 "\nCategoria: " .. (v.category or "N/A") ..
                 "\nFonte: " .. (v.source or "N/A") ..
                 "\nMatch: " .. (v.matched_text or v.pattern or "N/A") ..
-                "\nLinha: " .. tostring(v.line_number or "N/A")
+                "\nLinha: " .. tostring(v.line_number or v.line or "N/A")
+            if v.risk_score then
+                desc = desc .. "\nRisk Score: " .. tostring(v.risk_score)
+            end
+            if v.risk_level then
+                desc = desc .. "\nRisk Level: " .. v.risk_level
+            end
             if v.line_content then
                 desc = desc .. "\nConteúdo: " .. truncate(v.line_content, 120)
             end
             if v.remediation then
                 desc = desc .. "\n\n💡 Remediação: " .. v.remediation
+            end
+            if v.combo_patterns then
+                desc = desc .. "\nCombo: " .. table.concat(v.combo_patterns, " + ")
             end
             local sev = v.severity or "MEDIUM"
 
@@ -1115,7 +1140,7 @@ function ScannerGui:_populateVulns(page, data)
                 v.category or "N/A",
                 v.source or "N/A",
                 v.matched_text or v.pattern or "N/A",
-                tostring(v.line_number or "N/A"),
+                tostring(v.line_number or v.line or "N/A"),
                 v.remediation or "N/A")
         end
     end
@@ -1150,21 +1175,43 @@ function ScannerGui:_populateHeuristic(page, data)
         local order = 1
         for _, a in ipairs(analyses) do
             local title = (a.source or "Unknown") .. " — Score: " .. (a.score or 0)
-            local desc = "Level: " .. (a.level or "NONE") ..
-                "\nIndicadores: " .. (a.indicators_found and tostring(#a.indicators_found) or "0") ..
-                "\nMultiplicadores: " .. (a.multipliers_applied and tostring(#a.multipliers_applied) or "0")
+            local desc = "Level: " .. (a.level or "NONE")
 
-            if a.indicators_found and #a.indicators_found > 0 then
+            -- Handle both v3 format (indicators_found) and v2 format (findings)
+            local indicators = a.indicators_found or a.findings or {}
+            local multipliers = a.multipliers_applied or a.combos or {}
+
+            desc = desc .. "\nIndicadores: " .. tostring(#indicators)
+            desc = desc .. "\nMultiplicadores: " .. tostring(#multipliers)
+
+            if #indicators > 0 then
                 desc = desc .. "\n\nIndicadores encontrados:"
-                for _, ind in ipairs(a.indicators_found) do
-                    desc = desc .. "\n  • " .. tostring(ind.name or ind)
+                for _, ind in ipairs(indicators) do
+                    if type(ind) == "table" then
+                        local indName = ind.name or ind.pattern or tostring(ind)
+                        local indWeight = ind.weight or ind.effective_weight or ""
+                        local indCount = ind.count or ""
+                        if indWeight ~= "" then
+                            desc = desc .. "\n  • " .. indName .. " (peso: " .. tostring(indWeight) .. ", count: " .. tostring(indCount) .. ")"
+                        else
+                            desc = desc .. "\n  • " .. indName
+                        end
+                    else
+                        desc = desc .. "\n  • " .. tostring(ind)
+                    end
                 end
             end
 
-            if a.multipliers_applied and #a.multipliers_applied > 0 then
+            if #multipliers > 0 then
                 desc = desc .. "\n\nMultiplicadores:"
-                for _, m in ipairs(a.multipliers_applied) do
-                    desc = desc .. "\n  × " .. tostring(m.name or m) .. " (" .. tostring(m.multiplier or m.value or "") .. ")"
+                for _, m in ipairs(multipliers) do
+                    if type(m) == "table" then
+                        local mName = m.name or "Combo"
+                        local mVal = m.multiplier or m.value or ""
+                        desc = desc .. "\n  × " .. tostring(mName) .. " (" .. tostring(mVal) .. ")"
+                    else
+                        desc = desc .. "\n  × " .. tostring(m)
+                    end
                 end
             end
 
@@ -1193,8 +1240,17 @@ function ScannerGui:_populateHeuristic(page, data)
     local hText = "=== Heuristic Analyses ===\n"
     if type(analyses) == "table" then
         for _, a in ipairs(analyses) do
-            hText = hText .. string.format("[%s] %s: score=%d level=%s\n",
-                a.level or "?", a.source or "?", a.score or 0, a.level or "?")
+            hText = hText .. string.format("[%s] %s: score=%s level=%s\n",
+                a.level or "?", a.source or "?", tostring(a.score or 0), a.level or "?")
+            local indicators = a.indicators_found or a.findings or {}
+            for _, ind in ipairs(indicators) do
+                if type(ind) == "table" then
+                    hText = hText .. string.format("  • %s (weight=%s, count=%s)\n",
+                        ind.name or ind.pattern or "?",
+                        tostring(ind.weight or "?"),
+                        tostring(ind.count or "?"))
+                end
+            end
         end
     end
 
@@ -1289,24 +1345,46 @@ function ScannerGui:_populateNetwork(page, data)
     local network = data.network or {}
     local requests = network.requests or network.log or {}
 
-    -- Stats
+    -- Stats (handle both v2 and v3 field names)
+    local totalReqs = network.total_requests or network.total or 0
+    local suspReqs = network.suspicious_requests or network.suspicious or 0
+
     local statsSection = self:_createSection(page, "📡 Network Stats", 1)
 
-    self:_createStatBar(statsSection, "Total Requests", network.total_requests or 0,
-        math.max(network.total_requests or 1, 1), COLORS.ACCENT, 1)
-    self:_createStatBar(statsSection, "Suspicious", network.suspicious_requests or 0,
-        math.max(network.total_requests or 1, 1), COLORS.HIGH, 2)
+    self:_createStatBar(statsSection, "Total Requests", totalReqs,
+        math.max(totalReqs, 1), COLORS.ACCENT, 1)
+    self:_createStatBar(statsSection, "Suspicious", suspReqs,
+        math.max(totalReqs, 1), COLORS.HIGH, 2)
+
+    if network.blocked then
+        self:_createStatBar(statsSection, "Blocked", network.blocked or 0,
+            math.max(totalReqs, 1), COLORS.CRITICAL, 3)
+    end
 
     -- Detalhes de requests
     if type(requests) == "table" and #requests > 0 then
         local order = 10
         for _, r in ipairs(requests) do
             local title = (r.method or "GET") .. " " .. truncate(r.url or r.domain or "Unknown", 60)
+            -- Handle both v2 format (domain_risk.risk) and v3 format (risk_score)
             local riskScore = r.risk_score or r.risk or 0
+            if type(r.domain_risk) == "table" then
+                riskScore = r.domain_risk.risk or riskScore
+            end
+            local reason = r.reason or "N/A"
+            if type(r.domain_risk) == "table" and r.domain_risk.reason then
+                reason = r.domain_risk.reason
+            end
             local desc = "URL: " .. (r.url or "N/A") ..
                 "\nDomínio: " .. (r.domain or "N/A") ..
                 "\nRisco: " .. tostring(riskScore) ..
-                "\nMotivo: " .. (r.reason or "N/A")
+                "\nMotivo: " .. reason
+            if r.is_suspicious then
+                desc = desc .. "\n⚠️ Suspeito"
+            end
+            if r.is_burst then
+                desc = desc .. "\n⚡ Burst detectado"
+            end
             local sev = "NONE"
             if riskScore >= 8 then sev = "CRITICAL"
             elseif riskScore >= 6 then sev = "HIGH"
@@ -1324,12 +1402,20 @@ function ScannerGui:_populateNetwork(page, data)
     -- Copiar
     local nText = "=== Network Monitor ===\n"
     nText = nText .. string.format("Total: %d, Suspicious: %d\n\n",
-        network.total_requests or 0, network.suspicious_requests or 0)
+        totalReqs, suspReqs)
     if type(requests) == "table" then
         for _, r in ipairs(requests) do
+            local riskScore = r.risk_score or r.risk or 0
+            if type(r.domain_risk) == "table" then
+                riskScore = r.domain_risk.risk or riskScore
+            end
+            local reason = r.reason or ""
+            if type(r.domain_risk) == "table" and r.domain_risk.reason then
+                reason = r.domain_risk.reason
+            end
             nText = nText .. string.format("[Risk:%s] %s %s — %s\n",
-                tostring(r.risk_score or r.risk or 0), r.method or "?",
-                r.url or "?", r.reason or "")
+                tostring(riskScore), r.method or "?",
+                r.url or "?", reason)
         end
     end
 
@@ -1574,11 +1660,9 @@ function ScannerGui:update(results)
 
     if not self.gui or not self.isVisible then return end
 
-    -- Popular todas as abas
-    for tabId in pairs(self.tabPages) do
-        if tabId == self.currentTab then
-            self:populateTab(tabId, results)
-        end
+    -- Popular a aba atual imediatamente
+    if self.currentTab and self.tabPages[self.currentTab] then
+        self:populateTab(self.currentTab, results)
     end
 end
 
@@ -1591,6 +1675,16 @@ function ScannerGui:show()
     self.isVisible = true
     if self.lastResults then
         self:update(self.lastResults)
+    else
+        -- Show empty state so GUI is not completely blank
+        self:update({
+            scanner = { scripts_analyzed = 0, remote_events = 0, remote_functions = 0, suspicious_items = 0 },
+            vulnerabilities = { by_severity = { CRITICAL = 0, HIGH = 0, MEDIUM = 0, LOW = 0 }, details = {} },
+            network = { total_requests = 0, suspicious_requests = 0, requests = {} },
+            heuristic = { total_analyzed = 0, max_score = 0, average_score = 0, analyses = {} },
+            signatures = { detections = {} },
+            log_entries = {},
+        })
     end
 end
 
