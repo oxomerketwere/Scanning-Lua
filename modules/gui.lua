@@ -117,10 +117,12 @@ local function safeTostring(v)
         local ok, result = pcall(function()
             local parts = {}
             local count = 0
+            local totalCount = 0
+            for _ in pairs(v) do totalCount = totalCount + 1 end
             for k, val in pairs(v) do
                 count = count + 1
                 if count > 20 then
-                    parts[#parts + 1] = "... (+" .. (0) .. " more)"
+                    parts[#parts + 1] = "... (+" .. (totalCount - 20) .. " more)"
                     break
                 end
                 parts[#parts + 1] = tostring(k) .. " = " .. tostring(val)
@@ -803,7 +805,7 @@ function ScannerGui:_setupDragging(titleBar)
             dragStart = input.Position
             startPos = self.mainFrame.Position
 
-            input.Changed:Connect(function()
+            self:_connect(input.Changed, function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
                 end
