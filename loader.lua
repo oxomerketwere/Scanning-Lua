@@ -1,6 +1,6 @@
 --[[
     ╔══════════════════════════════════════════════════════════════╗
-    ║                    Scanning-Lua v2.0.0                      ║
+    ║                    Scanning-Lua v3.0.0                      ║
     ║          Scanner de Segurança para Roblox                   ║
     ║                                                              ║
     ║  loadstring(game:HttpGet(                                    ║
@@ -2002,9 +2002,12 @@ if autoScan then
     ScanningLua.fullScan()
     ScanningLua.printSummary()
 
-    -- Auto-abrir GUI após scan
+    -- Auto-abrir GUI após o scan
     pcall(function()
-        ScanningLua.showGui()
+        if task and task.wait then task.wait(1) end
+        if ScanningLua.showGui then
+            ScanningLua.showGui()
+        end
     end)
 end
 
