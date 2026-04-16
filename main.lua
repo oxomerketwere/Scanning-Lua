@@ -367,18 +367,35 @@ function ScanningLua.getVulnerabilityReport()
 end
 
 --- Retorna estatísticas gerais (incluindo todos os módulos avançados)
+--- Inclui dados detalhados (listas) para a GUI poder exibir resultados individuais
 --- @return table Estatísticas
 function ScanningLua.getStats()
+    -- Vulnerabilidades: incluir lista detalhada para aba Vulns da GUI
+    local vulnStats = vulnDetector:getStats()
+    vulnStats.details = vulnDetector:getVulnerabilities()
+
+    -- Heurística: incluir lista de análises para aba Heuristic da GUI
+    local heuristicStats = heuristicEngine:getStats()
+    heuristicStats.analyses = heuristicEngine:getAnalyses()
+
+    -- Assinaturas: incluir lista de detecções para aba Signatures da GUI
+    local sigStats = signatureSystem:getStats()
+    sigStats.detections = signatureSystem:getDetections()
+
+    -- Rede: incluir lista de requisições para aba Network da GUI
+    local netStats = networkMonitor:getStats()
+    netStats.requests = networkMonitor:getRequestLog()
+
     return {
         scanner = scanner:getSummary(),
-        vulnerabilities = vulnDetector:getStats(),
-        network = networkMonitor:getStats(),
+        vulnerabilities = vulnStats,
+        network = netStats,
         filters = filters:getStats(),
         logger = logger:getStats(),
         -- Módulos avançados
         behavior = behaviorAnalyzer:getStats(),
-        heuristic = heuristicEngine:getStats(),
-        signatures = signatureSystem:getStats(),
+        heuristic = heuristicStats,
+        signatures = sigStats,
         incremental = incrementalScanner:getStats(),
         performance = debugSystem:getStats(),
         false_positive = falsePositiveReducer:getStats(),
@@ -685,6 +702,14 @@ function ScanningLua.runDemo()
 
     -- Salvar resultados
     ScanningLua.saveAllResults()
+
+    -- Atualizar GUI (#27) e exibir se auto_show estiver habilitado
+    pcall(function()
+        scannerGui:update(stats)
+        if Config.GUI.AUTO_SHOW then
+            scannerGui:show()
+        end
+    end)
 
     print("\n============================================")
     print("  DEMONSTRAÇÃO v3.0.0 CONCLUÍDA")
