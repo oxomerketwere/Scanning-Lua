@@ -89,9 +89,9 @@ function BehaviorAnalyzer:_hookInstanceNew()
         if not hookfunction or not Instance or not Instance.new then return end
 
         local originalNew = hookfunction(Instance.new, function(className, parent, ...)
-            -- Registrar criação
+            local instance = originalNew(className, parent, ...)
             selfRef:_recordInstanceCreation(className, parent)
-            return originalNew(className, parent, ...)
+            return instance
         end)
 
         selfRef.hooks.instanceNew = {

@@ -229,22 +229,14 @@ function FalsePositiveReducer:evaluate(alert)
     if alert.code then
         local adjustedScore = score
         for _, rule in ipairs(self.contextRules) do
-            local matches = pcall(function()
-                return rule.condition(alert.code, alert.source)
-            end)
-            if matches then
-                local ruleResult
-                pcall(function()
-                    ruleResult = rule.condition(alert.code, alert.source)
-                end)
-                if ruleResult then
-                    local adjustment = math.floor(adjustedScore * rule.adjustment)
-                    adjustedScore = adjustedScore + adjustment
-                    evaluation.reasons[#evaluation.reasons + 1] = string.format(
-                        "Regra '%s': ajuste %+d (%.0f%%)",
-                        rule.name, adjustment, rule.adjustment * 100
-                    )
-                end
+            local success, ruleResult = pcall(rule.condition, alert.code, alert.source)
+            if success and ruleResult then
+                local adjustment = math.floor(adjustedScore * rule.adjustment)
+                adjustedScore = adjustedScore + adjustment
+                evaluation.reasons[#evaluation.reasons + 1] = string.format(
+                    "Regra '%s': ajuste %+d (%.0f%%)",
+                    rule.name, adjustment, rule.adjustment * 100
+                )
             end
         end
 

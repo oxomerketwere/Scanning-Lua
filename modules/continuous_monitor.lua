@@ -215,10 +215,10 @@ function ContinuousMonitor:_checkKnownScripts()
         for path, info in pairs(self.knownScripts) do
             -- Se a info tem referência, verificar se ainda existe
             if info.instance then
-                local exists = pcall(function()
+                local success, hasParent = pcall(function()
                     return info.instance.Parent ~= nil
                 end)
-                if not exists then
+                if not success or not hasParent then
                     toRemove[#toRemove + 1] = path
                 end
             end

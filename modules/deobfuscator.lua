@@ -184,9 +184,11 @@ function Deobfuscator:resolveOctalEscapes(code)
     local count = 0
     local result = code:gsub("\\(%d%d%d)", function(oct)
         local byte = tonumber(oct)
-        if byte and byte >= 32 and byte <= 126 then
-            count = count + 1
-            return string.char(byte)
+        if byte and byte >= 32 and byte <= 255 then
+            if byte <= 126 then
+                count = count + 1
+                return string.char(byte)
+            end
         end
         return "\\" .. oct
     end)
@@ -237,12 +239,15 @@ function Deobfuscator:decodeBase64(data)
     data = data:gsub("=", "")
 
     for i = 1, #data, 4 do
-        local a = B64_CHARS:find(data:sub(i, i)) or 0
-        local b = B64_CHARS:find(data:sub(i + 1, i + 1)) or 0
-        local c = B64_CHARS:find(data:sub(i + 2, i + 2)) or 0
-        local d = B64_CHARS:find(data:sub(i + 3, i + 3)) or 0
+        local a = B64_CHARS:find(data:sub(i, i))
+        local b = B64_CHARS:find(data:sub(i + 1, i + 1))
+        local c = B64_CHARS:find(data:sub(i + 2, i + 2))
+        local d = B64_CHARS:find(data:sub(i + 3, i + 3))
 
-        a, b, c, d = a - 1, b - 1, c - 1, d - 1
+        if not a or not b then return nil end -- Invalid base64
+        a, b = a - 1, b - 1
+        c = c and (c - 1) or 0
+        d = d and (d - 1) or 0
 
         local n = a * 262144 + b * 4096 + c * 64 + d
 
