@@ -1727,6 +1727,9 @@ local networkMon = _NM.new(logger)
 local envFinger = _EF.new(logger)
 local discord = _DW.new(nil, logger)
 
+-- Instância do GUI (será inicializada no Roblox)
+local _guiInstance = nil
+
 logger:info("INIT", "Todos os módulos v2 carregados")
 
 -- API pública
@@ -1926,8 +1929,57 @@ function ScanningLua.shutdown()
     logger:info("MAIN", "Encerrando Scanning-Lua...")
     scanner:disconnectAll()
     ScanningLua.saveAll()
+    pcall(function()
+        if _guiInstance then _guiInstance:destroy() end
+    end)
     logger:flushPrints()
     print("[Scanning-Lua] Encerrado.")
+end
+
+--- Mostra a GUI interativa (#27)
+function ScanningLua.showGui()
+    pcall(function()
+        if not _guiInstance then
+            local GuiModule = loadstring(game:HttpGet(
+                "https://raw.githubusercontent.com/oxomerketwere/Scanning-Lua/main/modules/gui.lua"
+            ))()
+            _guiInstance = GuiModule.new({}, logger)
+        end
+        _guiInstance:show()
+        _guiInstance:update(ScanningLua.getStats())
+    end)
+end
+
+--- Esconde a GUI
+function ScanningLua.hideGui()
+    pcall(function()
+        if _guiInstance then _guiInstance:hide() end
+    end)
+end
+
+--- Toggle GUI (mostra/esconde)
+function ScanningLua.toggleGui()
+    pcall(function()
+        if _guiInstance and _guiInstance.isVisible then
+            _guiInstance:hide()
+        else
+            ScanningLua.showGui()
+        end
+    end)
+end
+
+--- Atualiza dados na GUI
+function ScanningLua.refreshGui()
+    pcall(function()
+        if _guiInstance then _guiInstance:update(ScanningLua.getStats()) end
+    end)
+end
+
+--- Destrói a GUI
+function ScanningLua.destroyGui()
+    pcall(function()
+        if _guiInstance then _guiInstance:destroy(); _guiInstance = nil end
+    end)
 end
 
 -- ================================================================
@@ -1949,6 +2001,11 @@ if autoScan then
     print("\n[Scanning-Lua] Executando scan completo...")
     ScanningLua.fullScan()
     ScanningLua.printSummary()
+
+    -- Auto-abrir GUI após scan
+    pcall(function()
+        ScanningLua.showGui()
+    end)
 end
 
 print("\n[Scanning-Lua] API pronta. Comandos:")
@@ -1961,6 +2018,10 @@ print("  ScanningLua.printSummary()          -- Resumo formatado")
 print("  ScanningLua.getReportJSON()         -- Relatório JSON")
 print("  ScanningLua.getEnvironment()        -- Fingerprint do executor")
 print("  ScanningLua.saveAll()               -- Salvar relatórios")
+print("  ScanningLua.showGui()               -- Abrir GUI interativa")
+print("  ScanningLua.hideGui()               -- Esconder GUI")
+print("  ScanningLua.toggleGui()             -- Toggle GUI")
+print("  ScanningLua.refreshGui()            -- Atualizar dados na GUI")
 print("  ScanningLua.shutdown()              -- Encerrar")
 print("")
 print("  Desativar auto-scan:")

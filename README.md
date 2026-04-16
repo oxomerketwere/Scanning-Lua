@@ -35,6 +35,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/oxomerketwere/Scannin
 | Monitoramento | Scan único | **Loop contínuo** com detecção de scripts novos em tempo real |
 | Payloads | Básico | **Detector avançado** captura URLs, classifica risco, segue cadeias |
 | Falso Positivo | Sem controle | **Whitelist + contexto + score mínimo** reduz alertas inúteis |
+| GUI | Sem interface | **GUI interativa** com abas, busca, botões de copiar e tema dark |
 
 ## 🧠 Módulos Avançados (v3)
 
@@ -122,6 +123,20 @@ Ferramentas de **diagnóstico profissional**:
 - Geração de embeds para Discord webhook
 - Seções para cada módulo (scanner, vulns, heuristic, network, etc.)
 
+### #27 — GUI Interativa
+**Interface gráfica completa** para copiar e visualizar resultados:
+- Janela draggable com título, minimizar e fechar
+- Sistema de 6 abas: Overview, Vulns, Heuristic, Signatures, Network, Resultados
+- Botão **📋 Copy** em cada resultado individual para copiar retornos
+- Botão **📋 Copiar Tudo** para exportar todos os resultados
+- Cores por severidade (⚫ CRITICAL, 🔴 HIGH, 🟠 MEDIUM, 🟡 LOW, 🟢 NONE)
+- Barra de risco visual animada
+- Campo de busca/filtro para encontrar resultados
+- ScrollingFrames para conteúdo extenso
+- Cards expandidos com detalhes de cada vulnerabilidade
+- Tema dark moderno com acentos em azul
+- Compatível com todos os executors (Synapse, Wave, Fluxus, etc.)
+
 ### #23 — Correlação entre Scripts
 Detecta **ecossistemas maliciosos** de scripts coordenados:
 - Comunicação via variáveis globais (`_G`, `shared`, `getgenv`)
@@ -207,6 +222,7 @@ Scanning-Lua/
 │   ├── stealth_mode.lua                # 🆕 Modo stealth (#19)
 │   ├── debug_system.lua                # 🆕 Sistema de debug (#20)
 │   ├── dashboard.lua                   # 🆕 Dashboard console/webhook (#21)
+│   ├── gui.lua                         # 🆕 GUI interativa com copy (#27)
 │   ├── script_correlator.lua           # 🆕 Correlação entre scripts (#23)
 │   ├── continuous_monitor.lua          # 🆕 Monitoramento contínuo (#24)
 │   ├── payload_detector.lua            # 🆕 Detecção de payload remoto (#25)
@@ -277,6 +293,13 @@ ScanningLua.showDashboard()           -- Exibir dashboard no console
 ScanningLua.getDashboardEmbed()       -- Gerar embed para Discord webhook
 ScanningLua.getStats()                -- Estatísticas de todos os módulos
 ScanningLua.getVulnerabilityReport()  -- Relatório de vulnerabilidades
+
+-- GUI INTERATIVA (#27)
+ScanningLua.showGui()                 -- Abrir GUI interativa (com botões de copiar)
+ScanningLua.hideGui()                 -- Esconder GUI
+ScanningLua.toggleGui()               -- Toggle GUI (mostra/esconde)
+ScanningLua.refreshGui()              -- Atualizar dados exibidos na GUI
+ScanningLua.destroyGui()              -- Fechar e destruir GUI completamente
 
 -- ANÁLISE AVANÇADA
 ScanningLua.getSignatureDetections()  -- Ver detecções de assinatura
