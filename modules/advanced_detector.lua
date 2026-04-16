@@ -102,7 +102,7 @@ local DANGEROUS_COMBOS = {
     },
     {
         name = "Backdoor via Require",
-        patterns = { "require", "%d%d%d%d%d" },
+        patterns = { "require", "%d%d+" },
         severity = "CRITICAL",
         bonus = 7,
         attack = "Carregamento de módulo backdoor por asset ID",
@@ -262,7 +262,7 @@ function AdvancedDetector:analyzeObfuscation(source)
             longStringCount = longStringCount + 1
         end
         -- Base64-like
-        if str:match("^[A-Za-z0-9+/=]+$") and #str > 50 then
+        if str:match("^[A-Za-z0-9+/=]+$") and #str > 50 and #str % 4 == 0 then
             hasEncoded = true
         end
     end
@@ -304,7 +304,7 @@ function AdvancedDetector:analyzeObfuscation(source)
 
     -- Variáveis de uma letra (I/l obfuscation)
     local singleVarCount = 0
-    for _ in source:gmatch("local%s+[a-zA-Z]%s*=") do
+    for _ in source:gmatch("local%s+[a-zA-Z_]%s*=") do
         singleVarCount = singleVarCount + 1
     end
     if singleVarCount >= 10 then
