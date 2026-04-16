@@ -235,6 +235,15 @@ Config.ContinuousMonitor = {
     ENABLED = false,
 }
 
+-- Configurações do GUI (#27)
+Config.GUI = {
+    -- Habilitar GUI automaticamente após scan
+    AUTO_SHOW = true,
+    -- Tamanho da janela
+    WIDTH = 580,
+    HEIGHT = 480,
+}
+
 -- Configurações do False Positive Reducer (#26)
 Config.FalsePositive = {
     -- Score mínimo para gerar alerta

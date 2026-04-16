@@ -39,6 +39,7 @@ local ScriptCorrelator = require("modules.script_correlator")
 local ContinuousMonitor = require("modules.continuous_monitor")
 local PayloadDetector = require("modules.payload_detector")
 local FalsePositiveReducer = require("modules.false_positive_reducer")
+local ScannerGui = require("modules.gui")
 
 -- ============================================================
 -- Inicialização
@@ -108,6 +109,7 @@ local scriptCorrelator = ScriptCorrelator.new(logger)
 local continuousMonitor = ContinuousMonitor.new(Config.ContinuousMonitor, logger)
 local payloadDetector = PayloadDetector.new({}, logger)
 local falsePositiveReducer = FalsePositiveReducer.new(Config.FalsePositive, logger)
+local scannerGui = ScannerGui.new(Config.GUI, logger)
 
 logger:info("MAIN", "Todos os módulos avançados carregados", {
     signatures_count = signatureSystem:getSignatureCount(),
@@ -187,6 +189,14 @@ function ScanningLua.fullScan(gameInstance)
 
     -- Exibir dashboard (#21)
     dashboard:displayConsole(summary)
+
+    -- Atualizar GUI (#27) e exibir se auto_show estiver habilitado
+    pcall(function()
+        scannerGui:update(summary)
+        if Config.GUI.AUTO_SHOW then
+            scannerGui:show()
+        end
+    end)
 
     -- Salvar resultados automaticamente
     ScanningLua.saveAllResults()
@@ -781,6 +791,53 @@ end
 --- @return table Relatório de recuperação
 function ScanningLua.autoRecover()
     return integrityGuard:autoRecover()
+end
+
+-- ============================================================
+-- API do GUI (#27)
+-- ============================================================
+
+--- Mostra a GUI interativa com os resultados
+function ScanningLua.showGui()
+    pcall(function()
+        scannerGui:show()
+        if ScanningLua.lastStats then
+            scannerGui:update(ScanningLua.lastStats)
+        else
+            scannerGui:update(ScanningLua.getStats())
+        end
+    end)
+end
+
+--- Esconde a GUI
+function ScanningLua.hideGui()
+    pcall(function()
+        scannerGui:hide()
+    end)
+end
+
+--- Toggle da GUI (mostra/esconde)
+function ScanningLua.toggleGui()
+    pcall(function()
+        scannerGui:toggle()
+        if scannerGui.isVisible then
+            scannerGui:update(ScanningLua.getStats())
+        end
+    end)
+end
+
+--- Atualiza os dados mostrados na GUI
+function ScanningLua.refreshGui()
+    pcall(function()
+        scannerGui:update(ScanningLua.getStats())
+    end)
+end
+
+--- Destrói a GUI completamente
+function ScanningLua.destroyGui()
+    pcall(function()
+        scannerGui:destroy()
+    end)
 end
 
 -- ============================================================
