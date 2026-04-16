@@ -87,6 +87,17 @@ local FONT_SIZES = {
     TINY = 11,
 }
 
+local function buildDefaultResults()
+    return {
+        scanner = { scripts_analyzed = 0, remote_events = 0, remote_functions = 0, suspicious_items = 0 },
+        vulnerabilities = { by_severity = { CRITICAL = 0, HIGH = 0, MEDIUM = 0, LOW = 0 }, details = {} },
+        network = { total_requests = 0, suspicious_requests = 0, requests = {} },
+        heuristic = { total_analyzed = 0, max_score = 0, average_score = 0, analyses = {} },
+        signatures = { detections = {} },
+        log_entries = {},
+    }
+end
+
 -- ============================================================
 -- Utilitários internos
 -- ============================================================
@@ -228,9 +239,15 @@ end
 
 --- Conecta evento e armazena connection para cleanup
 function ScannerGui:_connect(signal, callback)
-    local conn = signal:Connect(callback)
-    self.connections[#self.connections + 1] = conn
-    return conn
+    if not signal or not callback then return nil end
+    local ok, conn = pcall(function()
+        return signal:Connect(callback)
+    end)
+    if ok and conn then
+        self.connections[#self.connections + 1] = conn
+        return conn
+    end
+    return nil
 end
 
 --- Copia texto para clipboard
@@ -494,6 +511,18 @@ function ScannerGui:build()
     if not guiParent then
         pcall(function()
             guiParent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+        end)
+    end
+    if not guiParent then
+        pcall(function()
+            local players = game:GetService("Players")
+            local lp = players and players.LocalPlayer
+            guiParent = lp and lp:FindFirstChildOfClass("PlayerGui") or nil
+        end)
+    end
+    if not guiParent then
+        pcall(function()
+            guiParent = game:GetService("CoreGui")
         end)
     end
 
@@ -1656,6 +1685,10 @@ end
 --- Atualiza a GUI com novos resultados
 --- @param results table Resultados do scan (output de getStats, scanCode, etc.)
 function ScannerGui:update(results)
+    if type(results) ~= "table" then
+        results = buildDefaultResults()
+    end
+
     self.lastResults = results
 
     if not self.gui or not self.isVisible then return end
@@ -1677,14 +1710,7 @@ function ScannerGui:show()
         self:update(self.lastResults)
     else
         -- Show empty state so GUI is not completely blank
-        self:update({
-            scanner = { scripts_analyzed = 0, remote_events = 0, remote_functions = 0, suspicious_items = 0 },
-            vulnerabilities = { by_severity = { CRITICAL = 0, HIGH = 0, MEDIUM = 0, LOW = 0 }, details = {} },
-            network = { total_requests = 0, suspicious_requests = 0, requests = {} },
-            heuristic = { total_analyzed = 0, max_score = 0, average_score = 0, analyses = {} },
-            signatures = { detections = {} },
-            log_entries = {},
-        })
+        self:update(buildDefaultResults())
     end
 end
 
