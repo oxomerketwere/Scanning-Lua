@@ -1000,7 +1000,7 @@ function ScannerGui:_populateOverview(page, data)
     -- Obfuscation Overview (v2 loader data)
     local obf = data.obfuscation or {}
     if obf.detected and obf.detected > 0 then
-        self:_createStatBar(scanSection, "Ofuscação Detectada", obf.detected or 0, math.max(obf.detected or 1, 1), COLORS.HIGH, 7)
+        self:_createStatBar(scanSection, "Ofuscação Detectada", obf.detected, obf.detected, COLORS.HIGH, 7)
     end
 
     -- Vulnerabilidades Resumo
