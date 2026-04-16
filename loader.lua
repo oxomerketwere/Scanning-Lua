@@ -1881,12 +1881,38 @@ function ScanningLua.getReportJSON() return vulnDetector:exportJSON() end
 
 --- Estatísticas
 function ScanningLua.getStats()
+    -- Vulnerabilidades: incluir lista detalhada para GUI
+    local vulnStats = vulnDetector:getStats()
+    vulnStats.details = vulnDetector:getVulns()
+
+    -- Rede: incluir lista de requisições e nomes compatíveis com GUI
+    local netStats = networkMon:getStats()
+    netStats.requests = networkMon:getRequests()
+    netStats.total_requests = netStats.total or 0
+    netStats.suspicious_requests = netStats.suspicious or 0
+
+    -- Risk analyses como dados heurísticos para GUI
+    local analyses = riskEngine:getAnalyses()
+    local maxScore, totalScore = 0, 0
+    for _, a in ipairs(analyses) do
+        totalScore = totalScore + (a.score or 0)
+        if (a.score or 0) > maxScore then maxScore = a.score end
+    end
+    local heuristicStats = {
+        total_analyzed = #analyses,
+        max_score = maxScore,
+        average_score = #analyses > 0 and (totalScore / #analyses) or 0,
+        analyses = analyses,
+    }
+
     return {
         scanner = scanner:getSummary(),
-        vulnerabilities = vulnDetector:getStats(),
-        network = networkMon:getStats(),
+        vulnerabilities = vulnStats,
+        network = netStats,
         obfuscation = obfDetector:getStats(),
         logger = logger:getStats(),
+        heuristic = heuristicStats,
+        log_entries = logger.entries,
     }
 end
 
@@ -1943,7 +1969,7 @@ function ScanningLua.showGui()
             local GuiModule = loadstring(game:HttpGet(
                 "https://raw.githubusercontent.com/oxomerketwere/Scanning-Lua/main/modules/gui.lua"
             ))()
-            _guiInstance = GuiModule.new({}, logger)
+            _guiInstance = GuiModule.new({ AUTO_SHOW = true, WIDTH = 580, HEIGHT = 480 }, logger)
         end
         _guiInstance:show()
         _guiInstance:update(ScanningLua.getStats())
