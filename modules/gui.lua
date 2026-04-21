@@ -933,13 +933,17 @@ function ScannerGui:_setupDragging(titleBar)
             local newX = startPos.X.Offset + delta.X
             local newY = startPos.Y.Offset + delta.Y
 
-            -- Clamp within viewport so the window cannot be moved off-screen
+            -- Clamp within viewport so the window cannot be moved off-screen.
+            -- MIN_VISIBLE = 0.1 ensures at least 10% of the window stays on screen.
+            -- The left edge may go up to 90% off-screen to the left; the right edge
+            -- must keep at least 10% of the window visible on the right side.
             pcall(function()
                 local vp = workspace.CurrentCamera.ViewportSize
                 local winW = self.mainFrame.AbsoluteSize.X
                 local winH = self.mainFrame.AbsoluteSize.Y
-                newX = math.clamp(newX, -(winW * 0.9), vp.X - (winW * 0.1))
-                newY = math.clamp(newY, 0, vp.Y - (winH * 0.1))
+                local minVisible = 0.1
+                newX = math.clamp(newX, -(winW * (1 - minVisible)), vp.X - (winW * minVisible))
+                newY = math.clamp(newY, 0, vp.Y - (winH * minVisible))
             end)
 
             self.mainFrame.Position = UDim2.new(
