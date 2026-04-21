@@ -19,6 +19,18 @@ local ScannerGui = {}
 ScannerGui.__index = ScannerGui
 
 -- ============================================================
+-- Compatibilidade com ambientes não-Roblox
+-- Garante que carregar este módulo fora do Roblox (ex.: rodar o demo
+-- com `lua main.lua`) não quebre por causa de globals como Color3.
+-- Em Roblox, usamos a API real; fora dele, um stub neutro.
+-- ============================================================
+local Color3 = rawget(_G, "Color3") or {
+    fromRGB = function(r, g, b)
+        return { R = (r or 0) / 255, G = (g or 0) / 255, B = (b or 0) / 255 }
+    end,
+}
+
+-- ============================================================
 -- Cores e constantes do tema
 -- ============================================================
 local COLORS = {
