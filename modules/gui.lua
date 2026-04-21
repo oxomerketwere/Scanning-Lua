@@ -23,8 +23,16 @@ ScannerGui.__index = ScannerGui
 -- Garante que carregar este módulo fora do Roblox (ex.: rodar o demo
 -- com `lua main.lua`) não quebre por causa de globals como Color3.
 -- Em Roblox, usamos a API real; fora dele, um stub neutro.
+--
+-- Importante: no Roblox, `_G` é uma tabela separada para globais
+-- compartilhados entre scripts; APIs do engine como `Color3` NÃO
+-- ficam em `_G`. Por isso usamos a busca de global padrão (que
+-- resolve via env do chunk) em vez de `rawget(_G, "Color3")`,
+-- que retornaria `nil` no Roblox e faria todo o GUI usar o stub
+-- (causando "Unable to assign property BackgroundColor3.
+-- Color3 expected, got table").
 -- ============================================================
-local Color3 = rawget(_G, "Color3") or {
+local Color3 = Color3 or {
     fromRGB = function(r, g, b)
         return { R = (r or 0) / 255, G = (g or 0) / 255, B = (b or 0) / 255 }
     end,
