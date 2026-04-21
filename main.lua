@@ -451,6 +451,10 @@ function ScanningLua.getStats()
     local netStats = networkMonitor:getStats()
     netStats.requests = networkMonitor:getRequestLog()
 
+    -- Detecções avançadas: incluir histórico de scans para a aba Advanced da GUI
+    local advStats = advancedDetector:getStats()
+    advStats.scan_history = advancedDetector:getScanHistory()
+
     return {
         scanner = scanner:getSummary(),
         vulnerabilities = vulnStats,
@@ -468,7 +472,7 @@ function ScanningLua.getStats()
         false_positive = falsePositiveReducer:getStats(),
         correlator = scriptCorrelator:getStats(),
         continuous = continuousMonitor:getStats(),
-        advanced = advancedDetector:getStats(),
+        advanced = advStats,
     }
 end
 
