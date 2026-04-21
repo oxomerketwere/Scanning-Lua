@@ -719,10 +719,19 @@ function ScannerGui:build()
     self.contentFrame = content
 
     -- ========== TAB BAR ==========
-    local tabBar = self:_create("Frame", {
+    -- Use a horizontally-scrolling frame so the tab bar gracefully handles
+    -- many tabs without overflowing the window (which previously made some
+    -- tabs unreachable / appear "bugged").
+    local tabBar = self:_create("ScrollingFrame", {
         Name = "TabBar",
         Size = UDim2.new(1, 0, 0, 32),
         BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ScrollingDirection = Enum.ScrollingDirection.X,
+        ScrollBarThickness = 2,
+        ScrollBarImageColor3 = COLORS.ACCENT_DIM,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticCanvasSize.X,
         Parent = content,
     })
 
@@ -736,12 +745,13 @@ function ScannerGui:build()
 
     local tabDefs = {
         { id = "overview",  label = "📊 Overview",    order = 1 },
-        { id = "vulns",     label = "🛡️ Vulns",       order = 2 },
-        { id = "heuristic", label = "🧠 Heuristic",   order = 3 },
-        { id = "sigs",      label = "🧩 Signatures",  order = 4 },
-        { id = "network",   label = "📡 Network",     order = 5 },
-        { id = "advanced",  label = "🔬 Advanced",    order = 6 },
-        { id = "results",   label = "📋 Resultados",  order = 7 },
+        { id = "logs",      label = "📝 Logs",        order = 2 },
+        { id = "vulns",     label = "🛡️ Vulns",       order = 3 },
+        { id = "heuristic", label = "🧠 Heuristic",   order = 4 },
+        { id = "sigs",      label = "🧩 Signatures",  order = 5 },
+        { id = "network",   label = "📡 Network",     order = 6 },
+        { id = "advanced",  label = "🔬 Advanced",    order = 7 },
+        { id = "results",   label = "📋 Resultados",  order = 8 },
     }
 
     for _, tabDef in ipairs(tabDefs) do
@@ -892,6 +902,30 @@ function ScannerGui:build()
         end)
     end)
 
+    -- Auto-refresh da aba de Logs em tempo real.
+    -- O `log_entries` é uma referência direta ao buffer do logger; basta
+    -- repopular a aba periodicamente para que novos logs apareçam sem
+    -- exigir clique manual em "Refresh".
+    self.autoRefreshToken = (self.autoRefreshToken or 0) + 1
+    local refreshToken = self.autoRefreshToken
+    pcall(function()
+        local function loop()
+            if not task or not task.spawn or not task.wait then return end
+            task.spawn(function()
+                while self.autoRefreshToken == refreshToken and self.gui do
+                    task.wait(2)
+                    if self.autoRefreshToken ~= refreshToken or not self.gui then return end
+                    if self.isVisible and not self.isMinimized and self.currentTab == "logs" then
+                        pcall(function()
+                            self:_refreshCurrentTab()
+                        end)
+                    end
+                end
+            end)
+        end
+        loop()
+    end)
+
     self.isVisible = true
     return self.gui
 end
@@ -1027,6 +1061,8 @@ function ScannerGui:populateTab(tabId, data)
 
     if tabId == "overview" then
         self:_populateOverview(page, data)
+    elseif tabId == "logs" then
+        self:_populateLogs(page, data)
     elseif tabId == "vulns" then
         self:_populateVulns(page, data)
     elseif tabId == "heuristic" then
@@ -1714,62 +1750,83 @@ function ScannerGui:_populateAdvanced(page, data)
     end)
 end
 
---- Popula aba Resultados (todos os retornos)
-function ScannerGui:_populateResults(page, data)
-    local order = 1
-
-    -- Seção: Log Entries (mostrar logs do scanner na GUI)
+--- Popula aba Logs (logs do scanner em tempo real)
+function ScannerGui:_populateLogs(page, data)
     local logEntries = data.log_entries or {}
-    if type(logEntries) == "table" and #logEntries > 0 then
-        local logsSection = self:_createSection(page, "📝 Logs do Scanner", 1)
-        local logOrder = 1
 
-        local logLevelEmojis = {
-            CRITICAL = "⚫",
-            ERROR = "🔴",
-            WARN = "🟠",
-            INFO = "🔵",
-            DEBUG = "⚪",
-        }
+    local logLevelEmojis = {
+        CRITICAL = "⚫",
+        ERROR    = "🔴",
+        WARN     = "🟠",
+        INFO     = "🔵",
+        DEBUG    = "⚪",
+    }
 
-        local logLevelToSeverity = {
-            CRITICAL = "CRITICAL",
-            ERROR = "HIGH",
-            WARN = "MEDIUM",
-            INFO = "NONE",
-            DEBUG = "NONE",
-        }
+    local logLevelToSeverity = {
+        CRITICAL = "CRITICAL",
+        ERROR    = "HIGH",
+        WARN     = "MEDIUM",
+        INFO     = "NONE",
+        DEBUG    = "NONE",
+    }
 
-        -- Mostrar logs do mais recente para o mais antigo (limitar a 100 entradas)
-        local maxLogDisplay = 100
-        local startIdx = math.max(1, #logEntries - maxLogDisplay + 1)
-        for i = #logEntries, startIdx, -1 do
-            local entry = logEntries[i]
-            if type(entry) == "table" then
-                local lvl = entry.level or "INFO"
-                local emoji = logLevelEmojis[lvl] or "⚪"
-                local logTitle = string.format("%s [%s] %s", emoji, lvl, entry.category or "")
-                local logDesc = (entry.message or "") ..
-                    "\nTimestamp: " .. (entry.timestamp or "N/A")
-                if entry.data then
-                    logDesc = logDesc .. "\nDados: " .. safeTostring(entry.data)
-                end
-                if entry.stacktrace then
-                    logDesc = logDesc .. "\n\nStack trace:\n" .. tostring(entry.stacktrace)
-                end
+    -- Cabeçalho com contagem e botões de ação
+    local header = self:_create("Frame", {
+        Size = UDim2.new(1, -4, 0, 32),
+        BackgroundColor3 = COLORS.BG_MEDIUM,
+        LayoutOrder = 1,
+        Parent = page,
+    })
+    self:_corner(header, 6)
+    self:_padding(header, 6, 8, 6, 8)
 
-                local searchable = (logTitle .. logDesc):lower()
-                if self.searchFilter == "" or searchable:find(self.searchFilter, 1, true) then
-                    local cardSev = logLevelToSeverity[lvl] or "NONE"
+    local totalCount = (type(logEntries) == "table") and #logEntries or 0
+    self:_create("TextLabel", {
+        Size = UDim2.new(1, -180, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "📝 " .. totalCount .. " entrada(s) de log  •  auto-refresh ativo",
+        TextColor3 = COLORS.TEXT_PRIMARY,
+        TextSize = FONT_SIZES.SMALL,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = header,
+    })
 
-                    self:_createResultCard(logsSection, logTitle, logDesc, cardSev, logOrder)
-                    logOrder = logOrder + 1
-                end
-            end
-        end
+    -- Botão Refresh manual
+    local refreshNow = self:_create("TextButton", {
+        Size = UDim2.new(0, 80, 0, 20),
+        Position = UDim2.new(1, -170, 0, 0),
+        BackgroundColor3 = COLORS.BTN_COPY,
+        Text = "↺ Refresh",
+        TextColor3 = COLORS.TEXT_PRIMARY,
+        TextSize = FONT_SIZES.TINY,
+        Font = Enum.Font.GothamMedium,
+        AutoButtonColor = false,
+        Parent = header,
+    })
+    self:_corner(refreshNow, 4)
+    self:_connect(refreshNow.MouseEnter, function() refreshNow.BackgroundColor3 = COLORS.BTN_COPY_HOVER end)
+    self:_connect(refreshNow.MouseLeave, function() refreshNow.BackgroundColor3 = COLORS.BTN_COPY end)
+    self:_connect(refreshNow.MouseButton1Click, function()
+        self:_refreshCurrentTab()
+    end)
 
-        -- Botão copiar todos os logs
-        local logsText = "=== Scanning-Lua Logs ===\n"
+    -- Botão Copiar Todos os Logs
+    local copyLogsBtn = self:_create("TextButton", {
+        Size = UDim2.new(0, 80, 0, 20),
+        Position = UDim2.new(1, -84, 0, 0),
+        BackgroundColor3 = COLORS.ACCENT,
+        Text = "📋 Copiar",
+        TextColor3 = COLORS.TEXT_PRIMARY,
+        TextSize = FONT_SIZES.TINY,
+        Font = Enum.Font.GothamBold,
+        AutoButtonColor = false,
+        Parent = header,
+    })
+    self:_corner(copyLogsBtn, 4)
+
+    local logsText = "=== Scanning-Lua Logs ===\n"
+    if type(logEntries) == "table" then
         for _, entry in ipairs(logEntries) do
             if type(entry) == "table" then
                 logsText = logsText .. string.format("[%s][%s][%s] %s\n",
@@ -1777,27 +1834,80 @@ function ScannerGui:_populateResults(page, data)
                     entry.category or "?", entry.message or "")
             end
         end
-
-        local copyLogsBtn = self:_create("TextButton", {
-            Size = UDim2.new(1, -4, 0, 30),
-            BackgroundColor3 = COLORS.ACCENT,
-            Text = "📋 Copiar Todos os Logs",
-            TextColor3 = COLORS.TEXT_PRIMARY,
-            TextSize = FONT_SIZES.SMALL,
-            Font = Enum.Font.GothamBold,
-            AutoButtonColor = false,
-            LayoutOrder = logOrder + 1,
-            Parent = logsSection,
-        })
-        self:_corner(copyLogsBtn, 6)
-
-        self:_connect(copyLogsBtn.MouseEnter, function() copyLogsBtn.BackgroundColor3 = COLORS.ACCENT_HOVER end)
-        self:_connect(copyLogsBtn.MouseLeave, function() copyLogsBtn.BackgroundColor3 = COLORS.ACCENT end)
-        self:_connect(copyLogsBtn.MouseButton1Click, function()
-            self:_copyToClipboard(logsText)
-            self:_flashCopy(copyLogsBtn, COLORS.ACCENT)
-        end)
     end
+
+    self:_connect(copyLogsBtn.MouseEnter, function() copyLogsBtn.BackgroundColor3 = COLORS.ACCENT_HOVER end)
+    self:_connect(copyLogsBtn.MouseLeave, function() copyLogsBtn.BackgroundColor3 = COLORS.ACCENT end)
+    self:_connect(copyLogsBtn.MouseButton1Click, function()
+        self:_copyToClipboard(logsText)
+        self:_flashCopy(copyLogsBtn, COLORS.ACCENT)
+    end)
+
+    -- Lista de logs (mais recente → mais antigo)
+    if type(logEntries) ~= "table" or #logEntries == 0 then
+        self:_create("TextLabel", {
+            Size = UDim2.new(1, -4, 0, 80),
+            BackgroundTransparency = 1,
+            Text = "ℹ️ Nenhum log registrado ainda.\nExecute um scan (ScanningLua.fullScan()) para gerar logs.",
+            TextColor3 = COLORS.TEXT_DIM,
+            TextSize = FONT_SIZES.BODY,
+            Font = Enum.Font.Gotham,
+            TextWrapped = true,
+            LayoutOrder = 2,
+            Parent = page,
+        })
+        return
+    end
+
+    local maxLogDisplay = 200
+    local startIdx = math.max(1, #logEntries - maxLogDisplay + 1)
+    local logOrder = 2
+    local shown = 0
+    for i = #logEntries, startIdx, -1 do
+        local entry = logEntries[i]
+        if type(entry) == "table" then
+            local lvl = entry.level or "INFO"
+            local emoji = logLevelEmojis[lvl] or "⚪"
+            local logTitle = string.format("%s [%s] %s", emoji, lvl, entry.category or "")
+            local logDesc = (entry.message or "") ..
+                "\nTimestamp: " .. (entry.timestamp or "N/A")
+            if entry.data then
+                logDesc = logDesc .. "\nDados: " .. safeTostring(entry.data)
+            end
+            if entry.stacktrace then
+                logDesc = logDesc .. "\n\nStack trace:\n" .. tostring(entry.stacktrace)
+            end
+
+            local searchable = (logTitle .. logDesc):lower()
+            if self.searchFilter == "" or searchable:find(self.searchFilter, 1, true) then
+                local cardSev = logLevelToSeverity[lvl] or "NONE"
+                self:_createResultCard(page, logTitle, logDesc, cardSev, logOrder)
+                logOrder = logOrder + 1
+                shown = shown + 1
+            end
+        end
+    end
+
+    if shown == 0 then
+        self:_create("TextLabel", {
+            Size = UDim2.new(1, -4, 0, 40),
+            BackgroundTransparency = 1,
+            Text = "🔍 Nenhum log corresponde ao filtro de busca.",
+            TextColor3 = COLORS.TEXT_DIM,
+            TextSize = FONT_SIZES.SMALL,
+            Font = Enum.Font.Gotham,
+            LayoutOrder = logOrder,
+            Parent = page,
+        })
+    end
+end
+
+--- Popula aba Resultados (todos os retornos)
+function ScannerGui:_populateResults(page, data)
+    local order = 1
+
+    -- (Os logs do scanner agora têm sua própria aba "📝 Logs" — antes ficavam
+    -- escondidos aqui dentro e os usuários reportavam não conseguir vê-los.)
 
     -- Seção: Estatísticas completas
     local statsSection = self:_createSection(page, "📊 Estatísticas Completas", 2)
@@ -2016,6 +2126,9 @@ end
 
 --- Destrói a GUI e limpa connections
 function ScannerGui:destroy()
+    -- Invalida o loop de auto-refresh em andamento (se houver)
+    self.autoRefreshToken = (self.autoRefreshToken or 0) + 1
+
     for _, conn in ipairs(self.connections) do
         pcall(function() conn:Disconnect() end)
     end
