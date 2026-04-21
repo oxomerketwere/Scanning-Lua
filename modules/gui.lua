@@ -180,6 +180,7 @@ function ScannerGui.new(config, logger)
     self.connections = {}
     self.lastResults = nil
     self.searchFilter = ""
+    self.searchDebounceToken = 0
     return self
 end
 
@@ -608,9 +609,9 @@ function ScannerGui:build()
         Parent = titleBar,
     })
 
-    -- Ícone e título
+    -- Ícone e título (width shrunk to accommodate the extra Refresh button)
     self:_create("TextLabel", {
-        Size = UDim2.new(1, -120, 1, 0),
+        Size = UDim2.new(1, -160, 1, 0),
         Position = UDim2.new(0, 14, 0, 0),
         BackgroundTransparency = 1,
         Text = "🔒 Scanning-Lua v3.0.0",
@@ -661,8 +662,32 @@ function ScannerGui:build()
         self:hide()
     end)
 
-    -- Hover effects nos botões
-    for _, btn in ipairs({minimizeBtn, closeBtn}) do
+    -- Botão refresh (↺) — fica à esquerda do minimize
+    local refreshBtn = self:_create("TextButton", {
+        Name = "Refresh",
+        Size = UDim2.new(0, 30, 0, 30),
+        Position = UDim2.new(1, -106, 0, 5),
+        BackgroundColor3 = COLORS.ACCENT,
+        BackgroundTransparency = 0.5,
+        Text = "↺",
+        TextColor3 = COLORS.TEXT_PRIMARY,
+        TextSize = FONT_SIZES.BODY,
+        Font = Enum.Font.GothamBold,
+        AutoButtonColor = false,
+        Parent = titleBar,
+    })
+    self:_corner(refreshBtn, 6)
+
+    self:_connect(refreshBtn.MouseButton1Click, function()
+        if self.lastResults then
+            self:update(self.lastResults)
+        else
+            self:update(buildDefaultResults())
+        end
+    end)
+
+    -- Hover effects nos botões de controle
+    for _, btn in ipairs({minimizeBtn, closeBtn, refreshBtn}) do
         self:_connect(btn.MouseEnter, function()
             btn.BackgroundTransparency = 0.2
         end)
@@ -707,7 +732,8 @@ function ScannerGui:build()
         { id = "heuristic", label = "🧠 Heuristic",   order = 3 },
         { id = "sigs",      label = "🧩 Signatures",  order = 4 },
         { id = "network",   label = "📡 Network",     order = 5 },
-        { id = "results",   label = "📋 Resultados",  order = 6 },
+        { id = "advanced",  label = "🔬 Advanced",    order = 6 },
+        { id = "results",   label = "📋 Resultados",  order = 7 },
     }
 
     for _, tabDef in ipairs(tabDefs) do
@@ -781,7 +807,16 @@ function ScannerGui:build()
 
     self:_connect(searchInput:GetPropertyChangedSignal("Text"), function()
         self.searchFilter = searchInput.Text:lower()
-        self:_refreshCurrentTab()
+        -- Debounce: only refresh after 0.3 s of inactivity to avoid freezing on large lists
+        self.searchDebounceToken = self.searchDebounceToken + 1
+        local token = self.searchDebounceToken
+        pcall(function()
+            task.delay(0.3, function()
+                if self.searchDebounceToken == token then
+                    self:_refreshCurrentTab()
+                end
+            end)
+        end)
     end)
 
     -- Botão "Copiar Tudo"
@@ -838,6 +873,17 @@ function ScannerGui:build()
         self.tabPages[tabDef.id] = page
     end
 
+    -- Hotkey: RightControl para toggle da GUI (somente no Roblox)
+    pcall(function()
+        local UIS = game:GetService("UserInputService")
+        self:_connect(UIS.InputBegan, function(input, gameProcessed)
+            if gameProcessed then return end
+            if input.KeyCode == Enum.KeyCode.RightControl then
+                self:toggle()
+            end
+        end)
+    end)
+
     self.isVisible = true
     return self.gui
 end
@@ -847,6 +893,11 @@ function ScannerGui:_setupDragging(titleBar)
     local dragging = false
     local dragStart, startPos
 
+    -- localConn is the per-drag input.Changed handler.
+    -- It is NOT stored in self.connections; it disconnects itself when the drag ends
+    -- so the same slot is reused on the next drag, preventing connection leaks.
+    local localConn
+
     self:_connect(titleBar.InputBegan, function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or
            input.UserInputType == Enum.UserInputType.Touch then
@@ -854,10 +905,23 @@ function ScannerGui:_setupDragging(titleBar)
             dragStart = input.Position
             startPos = self.mainFrame.Position
 
-            self:_connect(input.Changed, function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
+            -- Disconnect leftover handler from a previous drag
+            if localConn then
+                pcall(function() localConn:Disconnect() end)
+                localConn = nil
+            end
+
+            -- Connect directly (bypassing self:_connect) so it can be cleaned up early
+            pcall(function()
+                localConn = input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                        if localConn then
+                            localConn:Disconnect()
+                            localConn = nil
+                        end
+                    end
+                end)
             end)
         end
     end)
@@ -866,9 +930,21 @@ function ScannerGui:_setupDragging(titleBar)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or
            input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
+            local newX = startPos.X.Offset + delta.X
+            local newY = startPos.Y.Offset + delta.Y
+
+            -- Clamp within viewport so the window cannot be moved off-screen
+            pcall(function()
+                local vp = workspace.CurrentCamera.ViewportSize
+                local winW = self.mainFrame.AbsoluteSize.X
+                local winH = self.mainFrame.AbsoluteSize.Y
+                newX = math.clamp(newX, -(winW * 0.9), vp.X - (winW * 0.1))
+                newY = math.clamp(newY, 0, vp.Y - (winH * 0.1))
+            end)
+
             self.mainFrame.Position = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+                startPos.X.Scale, newX,
+                startPos.Y.Scale, newY
             )
         end
     end)
@@ -915,12 +991,14 @@ function ScannerGui:_clearPage(pageId)
             child:Destroy()
         end
     end
+    -- Reset scroll to top so re-populated content starts at the beginning
+    pcall(function() page.CanvasPosition = Vector2.new(0, 0) end)
 end
 
 --- Refresh da aba atual
 function ScannerGui:_refreshCurrentTab()
-    if not self.lastResults then return end
-    self:populateTab(self.currentTab, self.lastResults)
+    local results = self.lastResults or buildDefaultResults()
+    self:populateTab(self.currentTab, results)
 end
 
 -- ============================================================
@@ -945,6 +1023,8 @@ function ScannerGui:populateTab(tabId, data)
         self:_populateSignatures(page, data)
     elseif tabId == "network" then
         self:_populateNetwork(page, data)
+    elseif tabId == "advanced" then
+        self:_populateAdvanced(page, data)
     elseif tabId == "results" then
         self:_populateResults(page, data)
     end
@@ -1003,7 +1083,7 @@ function ScannerGui:_populateOverview(page, data)
         Size = UDim2.new(1, 0, 0, 30),
         BackgroundTransparency = 1,
         Text = riskEmoji .. " " .. riskLevel .. "  —  " .. totalVuln .. " vulnerabilidades detectadas",
-        TextColor3 = riskColor == COLORS.CRITICAL and Color3.fromRGB(255, 60, 60) or riskColor,
+        TextColor3 = riskLevel == "CRITICAL" and Color3.fromRGB(255, 60, 60) or riskColor,
         TextSize = FONT_SIZES.TITLE,
         Font = Enum.Font.GothamBold,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -1446,6 +1526,18 @@ function ScannerGui:_populateNetwork(page, data)
                 order = order + 1
             end
         end
+    else
+        -- Estado vazio quando não há requisições registradas
+        self:_create("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 40),
+            BackgroundTransparency = 1,
+            Text = "✅ Nenhuma requisição de rede registrada",
+            TextColor3 = COLORS.SUCCESS,
+            TextSize = FONT_SIZES.BODY,
+            Font = Enum.Font.GothamBold,
+            LayoutOrder = 11,
+            Parent = page,
+        })
     end
 
     -- Copiar
@@ -1485,6 +1577,127 @@ function ScannerGui:_populateNetwork(page, data)
     self:_connect(copyBtn.MouseLeave, function() copyBtn.BackgroundColor3 = COLORS.ACCENT end)
     self:_connect(copyBtn.MouseButton1Click, function()
         self:_copyToClipboard(nText)
+        self:_flashCopy(copyBtn, COLORS.ACCENT)
+    end)
+end
+
+--- Popula aba Advanced (advanced_detector scan history)
+function ScannerGui:_populateAdvanced(page, data)
+    local adv = data.advanced or {}
+    local history = adv.scan_history or {}
+
+    -- Resumo estatístico
+    local statsSection = self:_createSection(page, "🔬 Advanced Detection Stats", 1)
+    local totalScanned = adv.total_scanned or 0
+    local totalFindings = adv.total_findings or 0
+    self:_createStatBar(statsSection, "Scripts Escaneados", totalScanned, math.max(totalScanned, 1), COLORS.ACCENT, 1)
+    self:_createStatBar(statsSection, "Findings Total", totalFindings, math.max(totalFindings, 1), COLORS.HIGH, 2)
+    self:_createStatBar(statsSection, "Combos Detectados", adv.combos_detected or 0, math.max(totalFindings, 1), COLORS.CRITICAL, 3)
+    self:_createStatBar(statsSection, "URLs Suspeitas", adv.urls_detected or 0, math.max(totalFindings, 1), COLORS.MEDIUM, 4)
+    self:_createStatBar(statsSection, "Anti-Debug", adv.anti_debug_detected or 0, math.max(totalFindings, 1), COLORS.MEDIUM, 5)
+
+    local bySev = adv.by_severity or {}
+    self:_createStatBar(statsSection, "⚫ CRITICAL", bySev.CRITICAL or 0, math.max(totalFindings, 1), COLORS.CRITICAL, 6)
+    self:_createStatBar(statsSection, "🔴 HIGH", bySev.HIGH or 0, math.max(totalFindings, 1), COLORS.HIGH, 7)
+    self:_createStatBar(statsSection, "🟠 MEDIUM", bySev.MEDIUM or 0, math.max(totalFindings, 1), COLORS.MEDIUM, 8)
+    self:_createStatBar(statsSection, "🟡 LOW", bySev.LOW or 0, math.max(totalFindings, 1), COLORS.LOW, 9)
+
+    -- Histórico de scans individuais
+    if type(history) == "table" and #history > 0 then
+        local order = 10
+        for _, scan in ipairs(history) do
+            local title = (scan.script or "Unknown") .. " — Score: " .. tostring(scan.score or 0)
+            local sev = scan.risk or "NONE"
+
+            local desc = "Risk: " .. sev ..
+                "\nFindings: " .. tostring(scan.finding_count or #(scan.findings or {})) ..
+                "\nCombos: " .. tostring(scan.combo_count or #(scan.combos or {})) ..
+                "\nObfuscation score: " .. tostring(scan.obfuscation and scan.obfuscation.score or 0)
+
+            if scan.combos and #scan.combos > 0 then
+                desc = desc .. "\n\nCombos:"
+                for _, c in ipairs(scan.combos) do
+                    desc = desc .. "\n  💥 " .. (c.name or "?") .. " — " .. (c.attack or "")
+                end
+            end
+
+            if scan.findings and #scan.findings > 0 then
+                desc = desc .. "\n\nFindings:"
+                for _, f in ipairs(scan.findings) do
+                    local lineNum = f.line or 0
+                    if lineNum > 0 then
+                        desc = desc .. string.format("\n  💣 L%d [%s] %s → %s",
+                            lineNum, f.risk or "?", f.reason or "?", f.attack or "?")
+                    else
+                        desc = desc .. string.format("\n  💣 [%s] %s → %s",
+                            f.risk or "?", f.reason or "?", f.attack or "?")
+                    end
+                end
+            end
+
+            if scan.urls and type(scan.urls.suspicious) == "table" and #scan.urls.suspicious > 0 then
+                desc = desc .. "\n\nURLs suspeitas:"
+                for _, u in ipairs(scan.urls.suspicious) do
+                    desc = desc .. "\n  🌐 " .. (u.reason or u.pattern or "?")
+                end
+            end
+
+            if scan.anti_debug and #scan.anti_debug > 0 then
+                desc = desc .. "\n\nAnti-debug:"
+                for _, ad in ipairs(scan.anti_debug) do
+                    desc = desc .. "\n  🧪 " .. (ad.name or "?")
+                end
+            end
+
+            local searchable = (title .. desc):lower()
+            if self.searchFilter == "" or searchable:find(self.searchFilter, 1, true) then
+                self:_createResultCard(page, title, desc, sev, order)
+                order = order + 1
+            end
+        end
+    else
+        self:_create("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 40),
+            BackgroundTransparency = 1,
+            Text = "Nenhum scan avançado disponível",
+            TextColor3 = COLORS.TEXT_DIM,
+            TextSize = FONT_SIZES.BODY,
+            Font = Enum.Font.Gotham,
+            LayoutOrder = 11,
+            Parent = page,
+        })
+    end
+
+    -- Copiar
+    local advText = "=== Advanced Detection ===\n"
+    advText = advText .. string.format("Total scanned: %d | Findings: %d | Combos: %d\n\n",
+        adv.total_scanned or 0, adv.total_findings or 0, adv.combos_detected or 0)
+    if type(history) == "table" then
+        for _, scan in ipairs(history) do
+            advText = advText .. string.format("[%s] %s: score=%d (%s) | %d findings | %d combos\n",
+                scan.risk or "?", scan.script or "?", scan.score or 0, scan.risk or "?",
+                scan.finding_count or #(scan.findings or {}),
+                scan.combo_count or #(scan.combos or {}))
+        end
+    end
+
+    local copyBtn = self:_create("TextButton", {
+        Size = UDim2.new(1, -4, 0, 30),
+        BackgroundColor3 = COLORS.ACCENT,
+        Text = "📋 Copiar Detecções Avançadas",
+        TextColor3 = COLORS.TEXT_PRIMARY,
+        TextSize = FONT_SIZES.SMALL,
+        Font = Enum.Font.GothamBold,
+        AutoButtonColor = false,
+        LayoutOrder = 9999,
+        Parent = page,
+    })
+    self:_corner(copyBtn, 6)
+
+    self:_connect(copyBtn.MouseEnter, function() copyBtn.BackgroundColor3 = COLORS.ACCENT_HOVER end)
+    self:_connect(copyBtn.MouseLeave, function() copyBtn.BackgroundColor3 = COLORS.ACCENT end)
+    self:_connect(copyBtn.MouseButton1Click, function()
+        self:_copyToClipboard(advText)
         self:_flashCopy(copyBtn, COLORS.ACCENT)
     end)
 end
