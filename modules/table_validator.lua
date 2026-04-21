@@ -25,6 +25,7 @@ local function isArray(v)
 end
 
 local function copyTable(t)
+    -- Cópia rasa intencional: campos aninhados mantêm a mesma referência do original.
     local out = {}
     for k, v in pairs(t) do
         out[k] = v

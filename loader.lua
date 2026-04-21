@@ -1524,6 +1524,7 @@ end
 local _VD = {}; _VD.__index = _VD
 
 local function _vdSanitize(rows, logger)
+    -- Validador local no loader (arquivo único/autônomo, sem dependências externas).
     if type(rows) ~= "table" then return {} end
     local allowed = { LOW=true, MEDIUM=true, HIGH=true, CRITICAL=true }
     local out = {}
@@ -1537,7 +1538,7 @@ local function _vdSanitize(rows, logger)
             and type(r.fix) == "string" and r.fix ~= "" then
             out[#out+1] = r
         elseif logger then
-            logger:warn("TABLE_VALIDATE", string.format("VULN_DB[%d] inválida e ignorada", i))
+            logger:warn("TABLE_VALIDATOR", string.format("VULN_DB[%d] inválida e ignorada", i))
         end
     end
     return out
