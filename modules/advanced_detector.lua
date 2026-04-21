@@ -17,6 +17,7 @@
 
 local AdvancedDetector = {}
 AdvancedDetector.__index = AdvancedDetector
+local TableValidator = require("modules.table_validator")
 
 -- =========================
 -- ⚙️ PADRÕES DE DETECÇÃO
@@ -201,6 +202,8 @@ local ANTI_DEBUG_PATTERNS = {
     { pattern = "collectgarbage", score = 1, name = "GC manipulation", description = "Manipulação do garbage collector" },
 }
 
+local ALLOWED_SEVERITY = { LOW = true, MEDIUM = true, HIGH = true, CRITICAL = true }
+
 -- =========================
 -- CONSTRUCTOR
 -- =========================
@@ -223,6 +226,54 @@ function AdvancedDetector.new(logger)
         max_score = 0,
         average_score = 0,
     }
+
+    DETECTION_PATTERNS = TableValidator.sanitizeArray("DETECTION_PATTERNS", DETECTION_PATTERNS, {
+        required = { "pattern", "category", "severity", "score", "attack" },
+        types = {
+            pattern = "string",
+            category = "string",
+            severity = "string",
+            score = "number",
+            attack = "string",
+        },
+        allowed = {
+            severity = ALLOWED_SEVERITY,
+        },
+    }, self.logger)
+
+    DANGEROUS_COMBOS = TableValidator.sanitizeArray("DANGEROUS_COMBOS", DANGEROUS_COMBOS, {
+        required = { "name", "patterns", "severity", "bonus", "attack" },
+        types = {
+            name = "string",
+            patterns = "array",
+            severity = "string",
+            bonus = "number",
+            attack = "string",
+        },
+        allowed = {
+            severity = ALLOWED_SEVERITY,
+        },
+    }, self.logger)
+
+    SUSPICIOUS_URLS = TableValidator.sanitizeArray("SUSPICIOUS_URLS", SUSPICIOUS_URLS, {
+        required = { "pattern", "score", "reason" },
+        types = {
+            pattern = "string",
+            score = "number",
+            reason = "string",
+        },
+    }, self.logger)
+
+    ANTI_DEBUG_PATTERNS = TableValidator.sanitizeArray("ANTI_DEBUG_PATTERNS", ANTI_DEBUG_PATTERNS, {
+        required = { "pattern", "score", "name", "description" },
+        types = {
+            pattern = "string",
+            score = "number",
+            name = "string",
+            description = "string",
+        },
+    }, self.logger)
+
     return self
 end
 
