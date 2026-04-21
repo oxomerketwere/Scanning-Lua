@@ -1523,6 +1523,26 @@ end
 -- ================================================================
 local _VD = {}; _VD.__index = _VD
 
+local function _vdSanitize(rows, logger)
+    if type(rows) ~= "table" then return {} end
+    local allowed = { LOW=true, MEDIUM=true, HIGH=true, CRITICAL=true }
+    local out = {}
+    for i, r in ipairs(rows) do
+        if type(r) == "table"
+            and type(r.id) == "string" and r.id ~= ""
+            and type(r.name) == "string" and r.name ~= ""
+            and type(r.cat) == "string" and r.cat ~= ""
+            and type(r.sev) == "string" and allowed[r.sev]
+            and type(r.ind) == "table"
+            and type(r.fix) == "string" and r.fix ~= "" then
+            out[#out+1] = r
+        elseif logger then
+            logger:warn("TABLE_VALIDATE", string.format("VULN_DB[%d] inválida e ignorada", i))
+        end
+    end
+    return out
+end
+
 local VULN_DB = {
     {id="VULN-CI-001",name="Uso de loadstring",cat="CODE_INJECTION",sev="CRITICAL",
      ind={"loadstring"},fix="Evitar loadstring. Usar módulos pré-compilados."},
@@ -1551,6 +1571,7 @@ local VULN_DB = {
 function _VD.new(logger)
     local self = setmetatable({}, _VD)
     self.logger = logger
+    VULN_DB = _vdSanitize(VULN_DB, logger)
     self.vulns = {}
     self.stats = { total=0, by_severity={LOW=0,MEDIUM=0,HIGH=0,CRITICAL=0}, by_category={} }
     return self
